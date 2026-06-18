@@ -5,8 +5,8 @@ point.ast.nodes
 Abstract Syntax Tree (AST) node definitions
 for Point.
 
-The AST acts as the central document model
-used throughout the compilation pipeline.
+The AST acts as the canonical content model
+used throughout the Point compilation pipeline.
 
 Pipeline
 --------
@@ -21,7 +21,22 @@ AST
    ↓
 Compiler
    ↓
-Markdown
+Output
+
+Point is designed as a universal structured
+content language.
+
+Supported content types include:
+
+- lessons
+- guides
+- references
+- RFCs
+- standards
+- roadmaps
+- audits
+- blogs
+- articles
 """
 
 from __future__ import annotations
@@ -30,9 +45,23 @@ from dataclasses import (
     dataclass,
     field,
 )
-from typing import (
-    List,
-)
+
+# ============================================================
+# Document Types
+# ============================================================
+
+DOCUMENT_KINDS = {
+    "document",
+    "lesson",
+    "guide",
+    "reference",
+    "rfc",
+    "standard",
+    "roadmap",
+    "audit",
+    "blog",
+    "article",
+}
 
 # ============================================================
 # Base Node
@@ -54,20 +83,37 @@ class Node:
 
 
 @dataclass(slots=True)
-class Lesson(Node):
+class Document(Node):
     """
-    Lesson document.
+    Root Point document.
+
+    A document represents any content source
+    supported by Point.
+
+    Examples
+    --------
+    - lesson
+    - guide
+    - reference
+    - rfc
+    - standard
+    - roadmap
+    - audit
+    - blog
+    - article
     """
 
     title: str
 
-    children: List[Node] = field(default_factory=list)
+    kind: str = "document"
+
+    children: list[Node] = field(default_factory=list)
 
 
 @dataclass(slots=True)
 class Meta(Node):
     """
-    Lesson metadata.
+    Document metadata.
     """
 
     values: dict[str, str]
@@ -76,12 +122,17 @@ class Meta(Node):
 @dataclass(slots=True)
 class Section(Node):
     """
-    Lesson section.
+    Document section.
     """
 
     title: str
 
     content: str
+
+
+# ============================================================
+# Educational
+# ============================================================
 
 
 @dataclass(slots=True)
@@ -96,19 +147,18 @@ class Goals(Node):
 @dataclass(slots=True)
 class Summary(Node):
     """
-    Lesson summary.
+    Content summary.
     """
 
     content: str
 
 
-# ============================================================
-# Educational
-# ============================================================
-
-
 @dataclass(slots=True)
 class Definition(Node):
+    """
+    Definition block.
+    """
+
     title: str
 
     content: str
@@ -116,6 +166,10 @@ class Definition(Node):
 
 @dataclass(slots=True)
 class Term(Node):
+    """
+    Term block.
+    """
+
     title: str
 
     content: str
@@ -123,6 +177,10 @@ class Term(Node):
 
 @dataclass(slots=True)
 class Concept(Node):
+    """
+    Concept block.
+    """
+
     title: str
 
     content: str
@@ -130,16 +188,28 @@ class Concept(Node):
 
 @dataclass(slots=True)
 class Pitfall(Node):
+    """
+    Pitfall block.
+    """
+
     content: str
 
 
 @dataclass(slots=True)
 class BestPractice(Node):
+    """
+    Best practice block.
+    """
+
     content: str
 
 
 @dataclass(slots=True)
 class Interview(Node):
+    """
+    Interview question block.
+    """
+
     content: str
 
 
@@ -150,26 +220,46 @@ class Interview(Node):
 
 @dataclass(slots=True)
 class Note(Node):
+    """
+    Note block.
+    """
+
     content: str
 
 
 @dataclass(slots=True)
 class Tip(Node):
+    """
+    Tip block.
+    """
+
     content: str
 
 
 @dataclass(slots=True)
 class Warning(Node):
+    """
+    Warning block.
+    """
+
     content: str
 
 
 @dataclass(slots=True)
 class Danger(Node):
+    """
+    Danger block.
+    """
+
     content: str
 
 
 @dataclass(slots=True)
 class Info(Node):
+    """
+    Information block.
+    """
+
     content: str
 
 
@@ -180,6 +270,10 @@ class Info(Node):
 
 @dataclass(slots=True)
 class Code(Node):
+    """
+    Code block.
+    """
+
     language: str
 
     content: str
@@ -187,6 +281,10 @@ class Code(Node):
 
 @dataclass(slots=True)
 class CodeGroup(Node):
+    """
+    Collection of code blocks.
+    """
+
     blocks: list[Code]
 
 
@@ -197,6 +295,10 @@ class CodeGroup(Node):
 
 @dataclass(slots=True)
 class Diagram(Node):
+    """
+    Diagram block.
+    """
+
     diagram_type: str
 
     content: str
@@ -204,6 +306,10 @@ class Diagram(Node):
 
 @dataclass(slots=True)
 class Image(Node):
+    """
+    Image block.
+    """
+
     path: str
 
     caption: str = ""
@@ -211,6 +317,10 @@ class Image(Node):
 
 @dataclass(slots=True)
 class Figure(Node):
+    """
+    Figure block.
+    """
+
     path: str
 
     caption: str = ""
@@ -218,6 +328,10 @@ class Figure(Node):
 
 @dataclass(slots=True)
 class Gallery(Node):
+    """
+    Image gallery.
+    """
+
     images: list[str]
 
 
@@ -228,16 +342,28 @@ class Gallery(Node):
 
 @dataclass(slots=True)
 class Math(Node):
+    """
+    Mathematical expression.
+    """
+
     content: str
 
 
 @dataclass(slots=True)
 class Equation(Node):
+    """
+    Equation block.
+    """
+
     content: str
 
 
 @dataclass(slots=True)
 class Theorem(Node):
+    """
+    Theorem block.
+    """
+
     title: str
 
     content: str
@@ -250,17 +376,29 @@ class Theorem(Node):
 
 @dataclass(slots=True)
 class Next(Node):
-    lesson: str
+    """
+    Next related document.
+    """
+
+    document: str
 
 
 @dataclass(slots=True)
 class Previous(Node):
-    lesson: str
+    """
+    Previous related document.
+    """
+
+    document: str
 
 
 @dataclass(slots=True)
 class Related(Node):
-    lessons: list[str]
+    """
+    Related documents.
+    """
+
+    documents: list[str]
 
 
 # ============================================================
@@ -270,28 +408,51 @@ class Related(Node):
 
 @dataclass(slots=True)
 class References(Node):
+    """
+    References section.
+    """
+
     items: list[str]
 
 
 @dataclass(slots=True)
 class Reading(Node):
+    """
+    Further reading section.
+    """
+
     items: list[str]
 
 
 # ============================================================
-# Learning
+# Collections
 # ============================================================
 
 
 @dataclass(slots=True)
-class Path(Node):
+class Collection(Node):
+    """
+    Collection of related documents.
+
+    Examples
+    --------
+    - Learning paths
+    - Documentation series
+    - RFC groups
+    - Blog series
+    """
+
     title: str
 
-    lessons: list[str]
+    documents: list[str]
 
 
 @dataclass(slots=True)
 class Concepts(Node):
+    """
+    Knowledge graph concepts.
+    """
+
     items: list[str]
 
 
@@ -302,11 +463,19 @@ class Concepts(Node):
 
 @dataclass(slots=True)
 class Include(Node):
+    """
+    Include external Point content.
+    """
+
     path: str
 
 
 @dataclass(slots=True)
 class Snippet(Node):
+    """
+    Reusable snippet definition.
+    """
+
     name: str
 
     content: str
@@ -314,6 +483,10 @@ class Snippet(Node):
 
 @dataclass(slots=True)
 class Use(Node):
+    """
+    Reusable snippet usage.
+    """
+
     name: str
 
 
@@ -324,9 +497,13 @@ class Use(Node):
 
 @dataclass(slots=True)
 class Version(Node):
+    """
+    Versioned content block.
+    """
+
     version: str
 
-    children: List[Node] = field(default_factory=list)
+    children: list[Node] = field(default_factory=list)
 
 
 # ============================================================
@@ -336,6 +513,10 @@ class Version(Node):
 
 @dataclass(slots=True)
 class Component(Node):
+    """
+    Custom frontend component.
+    """
+
     name: str
 
     props: dict[str, str] = field(default_factory=dict)

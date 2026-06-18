@@ -5,8 +5,8 @@ tests.conftest
 Shared pytest fixtures for Point.
 
 Provides reusable objects used across
-parser, compiler, validator, and
-pipeline tests.
+tokenizer, parser, validator, compiler,
+and pipeline tests.
 """
 
 import pytest
@@ -26,18 +26,18 @@ from point.validators.validator import (
 
 
 @pytest.fixture
-def lesson_source():
+def document_source():
     """
-    Basic lesson source.
+    Basic document source.
     """
 
     return """
-@lesson Dependency Injection
+@document Dependency Injection
 
 @goals
 
 - Understand DI
-- Build container
+- Build Container
 
 @end
 
@@ -88,34 +88,40 @@ def validator():
 @pytest.fixture
 def tokens(
     tokenizer,
-    lesson_source,
+    document_source,
 ):
     """
-    Tokenized lesson.
+    Tokenized document.
     """
 
-    return tokenizer.tokenize(lesson_source)
+    return tokenizer.tokenize(
+        document_source,
+    )
 
 
 @pytest.fixture
-def lesson(
+def document(
     parser,
     tokens,
 ):
     """
-    Parsed lesson AST.
+    Parsed document AST.
     """
 
-    return parser.parse(tokens)
+    return parser.parse(
+        tokens,
+    )
 
 
 @pytest.fixture
 def markdown(
     compiler,
-    lesson,
+    document,
 ):
     """
     Compiled markdown.
     """
 
-    return compiler.compile(lesson)
+    return compiler.compile(
+        document,
+    )

@@ -12,10 +12,10 @@ Discover Point resources within a project.
 Features
 --------
 
-- lesson discovery
+- document discovery
 - glossary discovery
 - concept discovery
-- path discovery
+- collection discovery
 - reusable content indexing
 
 Pipeline
@@ -36,17 +36,17 @@ Builders
 from pathlib import Path
 
 
-def scan_lessons(
-    lessons_dir: Path,
+def scan_documents(
+    documents_dir: Path,
 ) -> list[Path]:
     """
-    Scan lesson directory.
+    Scan Point documents.
 
     Parameters
     ----------
-    lessons_dir:
+    documents_dir:
         Directory containing
-        Point lesson files.
+        Point document files.
 
     Returns
     -------
@@ -54,7 +54,11 @@ def scan_lessons(
         Sorted Point source files.
     """
 
-    files = list(lessons_dir.rglob("*.point"))
+    files = list(
+        documents_dir.rglob(
+            "*.point",
+        )
+    )
 
     return sorted(
         files,
@@ -75,14 +79,19 @@ def scan_directory(
         Root directory.
 
     extension:
-        File extension.
+        File extension without dot.
 
     Returns
     -------
     list[Path]
+        Sorted matching files.
     """
 
-    files = list(directory.rglob(f"*.{extension}"))
+    files = list(
+        directory.rglob(
+            f"*.{extension}",
+        )
+    )
 
     return sorted(
         files,
@@ -90,38 +99,48 @@ def scan_directory(
     )
 
 
-def lesson_names(
-    lessons_dir: Path,
+def document_names(
+    documents_dir: Path,
 ) -> list[str]:
     """
-    Return lesson names.
+    Return document names.
 
     Example
     -------
 
-    intro.point
+    architecture-guide.point
 
     becomes
 
-    intro
+    architecture-guide
     """
 
-    return [file.stem for file in scan_lessons(lessons_dir)]
+    return [
+        file.stem
+        for file in scan_documents(
+            documents_dir,
+        )
+    ]
 
 
-def lesson_map(
-    lessons_dir: Path,
+def document_map(
+    documents_dir: Path,
 ) -> dict[str, Path]:
     """
-    Create lesson lookup table.
+    Create document lookup table.
 
     Returns
     -------
 
     {
-        "intro": Path(...),
-        "di": Path(...),
+        "welcome": Path(...),
+        "architecture-guide": Path(...),
     }
     """
 
-    return {file.stem: file for file in scan_lessons(lessons_dir)}
+    return {
+        file.stem: file
+        for file in scan_documents(
+            documents_dir,
+        )
+    }

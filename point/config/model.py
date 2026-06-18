@@ -4,8 +4,9 @@ point.config.model
 
 Configuration models for Point.
 
-This module defines the strongly typed configuration
-objects used throughout the Point ecosystem.
+This module defines the strongly typed
+configuration objects used throughout the
+Point ecosystem.
 
 Pipeline
 --------
@@ -20,12 +21,12 @@ Project Manager
       ↓
 Compiler / Builders
 
-Point 1.0 supports:
+Point supports:
 
-- educational content
+- documents
+- collections
 - glossary generation
 - knowledge graph generation
-- learning paths
 - reusable content
 - versioned content
 - components
@@ -63,7 +64,7 @@ class BuildConfig:
 
     knowledge_graph: bool = True
 
-    learning_paths: bool = True
+    collections: bool = True
 
     components: bool = True
 
@@ -95,27 +96,27 @@ class ProjectConfig:
     #
     # Directories
     #
-
-    learning_path: dict | None = None
     
-    lessons_dir: str = "lessons"
-
+    documents_dir: str = "documents"
+    
     docs_dir: str = "docs"
-
+    
     assets_dir: str = "assets"
-
+    
     components_dir: str = "components"
-
+    
     #
     # Generated Content
     #
-
+    
     glossary_dir: str = "glossary"
-
+    
     graph_dir: str = "graph"
-
+    
     paths_dir: str = "paths"
-
+    
+    collections_dir: str = "collections"
+    
     #
     # Deployment Workflow
     #
@@ -126,10 +127,14 @@ class ProjectConfig:
     # Theme
     #
 
-    theme: ThemeConfig = field(default_factory=ThemeConfig)
+    theme: ThemeConfig = field(
+        default_factory=ThemeConfig,
+    )
 
     #
     # Build System
     #
 
-    build: BuildConfig = field(default_factory=BuildConfig)
+    build: BuildConfig = field(
+        default_factory=BuildConfig,
+    )

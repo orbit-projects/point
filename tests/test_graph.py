@@ -9,16 +9,6 @@ Responsibilities
 
 Verify graph extraction and
 resource generation.
-
-Coverage
---------
-
-- node extraction
-- edge extraction
-- slug generation
-- json generation
-- markdown generation
-- full build pipeline
 """
 
 from pathlib import Path
@@ -26,7 +16,7 @@ from pathlib import Path
 from point.ast.nodes import (
     Concept,
     Definition,
-    Lesson,
+    Document,
     Related,
     Term,
     Theorem,
@@ -40,14 +30,15 @@ from point.builders.graph import (
 
 def test_extract_nodes():
     """
-    Extract graph nodes from lessons.
+    Extract graph nodes from documents.
     """
 
-    lesson = Lesson(
+    document = Document(
         title="Dependency Injection",
+        kind="guide",
     )
 
-    lesson.children.extend(
+    document.children.extend(
         [
             Term(
                 title="Container",
@@ -68,13 +59,18 @@ def test_extract_nodes():
         ]
     )
 
-    nodes = GraphBuilder().extract_nodes([lesson])
+    nodes = GraphBuilder().extract_nodes(
+        [document],
+    )
 
     assert len(nodes) == 5
 
-    types = {node.type for node in nodes}
+    types = {
+        node.type
+        for node in nodes
+    }
 
-    assert "lesson" in types
+    assert "guide" in types
     assert "term" in types
     assert "definition" in types
     assert "concept" in types
@@ -83,23 +79,25 @@ def test_extract_nodes():
 
 def test_extract_edges():
     """
-    Extract related lesson edges.
+    Extract related document edges.
     """
 
-    lesson = Lesson(
+    document = Document(
         title="Dependency Injection",
     )
 
-    lesson.children.append(
+    document.children.append(
         Related(
-            lessons=[
+            documents=[
                 "Service Container",
                 "Factory Pattern",
             ]
         )
     )
 
-    edges = GraphBuilder().extract_edges([lesson])
+    edges = GraphBuilder().extract_edges(
+        [document],
+    )
 
     assert len(edges) == 2
 
@@ -111,7 +109,9 @@ def test_slugify():
     Generate graph-safe identifiers.
     """
 
-    slug = GraphBuilder().slugify("Dependency Injection")
+    slug = GraphBuilder().slugify(
+        "Dependency Injection",
+    )
 
     assert slug == "dependency-injection"
 
@@ -125,7 +125,9 @@ def test_write_json(
 
     builder = GraphBuilder()
 
-    output_file = tmp_path / "graph.json"
+    output_file = (
+        tmp_path / "graph.json"
+    )
 
     builder.write_json(
         [],
@@ -143,11 +145,25 @@ def test_write_markdown(
     Generate graph landing page.
     """
 
-    output_file = tmp_path / "index.md"
+    output_file = (
+        tmp_path / "index.md"
+    )
 
     GraphBuilder().write_markdown(
-        [GraphNode("a", "A", "lesson")],
-        [GraphEdge("a", "b", "contains")],
+        [
+            GraphNode(
+                "a",
+                "A",
+                "document",
+            )
+        ],
+        [
+            GraphEdge(
+                "a",
+                "b",
+                "contains",
+            )
+        ],
         output_file,
     )
 
@@ -158,6 +174,7 @@ def test_write_markdown(
     )
 
     assert "Knowledge Graph" in content
+
     assert "<GraphViewer />" in content
 
 
@@ -168,11 +185,11 @@ def test_build(
     Build complete graph resources.
     """
 
-    lesson = Lesson(
+    document = Document(
         title="Dependency Injection",
     )
 
-    lesson.children.append(
+    document.children.append(
         Concept(
             title="Inversion of Control",
             content="Control inversion.",
@@ -180,10 +197,14 @@ def test_build(
     )
 
     GraphBuilder().build(
-        [lesson],
+        [document],
         tmp_path,
     )
 
-    assert (tmp_path / "graph.json").exists()
+    assert (
+        tmp_path / "graph.json"
+    ).exists()
 
-    assert (tmp_path / "index.md").exists()
+    assert (
+        tmp_path / "index.md"
+    ).exists()

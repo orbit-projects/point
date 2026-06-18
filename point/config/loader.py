@@ -4,8 +4,8 @@ point.config.loader
 
 Configuration loading utilities.
 
-This module is responsible for locating and loading
-Point project configuration files.
+This module is responsible for locating and
+loading Point project configuration files.
 
 Pipeline
 --------
@@ -57,7 +57,9 @@ def find_config() -> Path:
 
         current = current.parent
 
-    raise FileNotFoundError("point.toml not found")
+    raise FileNotFoundError(
+        "point.toml not found"
+    )
 
 
 def load_config() -> ProjectConfig:
@@ -123,8 +125,8 @@ def load_config() -> ProjectConfig:
             "knowledge_graph",
             True,
         ),
-        learning_paths=build_data.get(
-            "learning_paths",
+        collections=build_data.get(
+            "collections",
             True,
         ),
         components=build_data.get(
@@ -150,10 +152,6 @@ def load_config() -> ProjectConfig:
             "author",
             "",
         ),
-        github_pages=data.get(
-            "github_pages",
-            False,
-        ),
         version=data.get(
             "version",
             "1.0.0",
@@ -162,12 +160,13 @@ def load_config() -> ProjectConfig:
             "description",
             "",
         ),
-        learning_path=data.get(
-            "learning_path",
+        github_pages=data.get(
+            "github_pages",
+            False,
         ),
-        lessons_dir=data.get(
-            "lessons_dir",
-            "lessons",
+        documents_dir=data.get(
+            "documents_dir",
+            "documents",
         ),
         docs_dir=data.get(
             "docs_dir",
@@ -192,6 +191,10 @@ def load_config() -> ProjectConfig:
         paths_dir=data.get(
             "paths_dir",
             "paths",
+        ),
+        collections_dir=data.get(
+            "collections_dir",
+            "collections",
         ),
         theme=theme,
         build=build,

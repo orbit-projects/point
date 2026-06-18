@@ -8,7 +8,7 @@ Responsibilities
 ----------------
 
 Extract reusable content snippets
-from Point lessons.
+from Point documents.
 
 Features
 --------
@@ -21,25 +21,35 @@ Features
 Pipeline
 --------
 
-Lessons
-    ↓
+Documents
+     ↓
 
 Parser
-    ↓
+     ↓
 
 AST
-    ↓
+     ↓
 
 SnippetBuilder
-    ↓
+     ↓
 
 snippets.json
 
 Overview
 --------
 
-Snippets provide reusable educational
-content across lessons.
+Snippets provide reusable content
+across the Point ecosystem.
+
+A snippet may originate from:
+
+- documentation
+- lessons
+- guides
+- RFCs
+- standards
+- blogs
+- articles
 
 Example
 -------
@@ -56,7 +66,7 @@ Produces:
 {
     "name": "dependency-injection",
     "content": "...",
-    "lesson": "Dependency Injection"
+    "document": "Dependency Injection Guide"
 }
 """
 
@@ -72,7 +82,7 @@ from pathlib import (
 )
 
 from point.ast.nodes import (
-    Lesson,
+    Document,
     Snippet,
 )
 
@@ -91,15 +101,15 @@ class SnippetEntry:
     content:
         Reusable content.
 
-    lesson:
-        Source lesson.
+    document:
+        Source document title.
     """
 
     name: str
 
     content: str
 
-    lesson: str
+    document: str
 
 
 class SnippetBuilder:
@@ -114,7 +124,7 @@ class SnippetBuilder:
 
     def build(
         self,
-        lessons: list[Lesson],
+        documents: list[Document],
         output_dir: Path,
     ) -> None:
         """
@@ -122,14 +132,16 @@ class SnippetBuilder:
 
         Parameters
         ----------
-        lessons:
-            Parsed lesson ASTs.
+        documents:
+            Parsed Point documents.
 
         output_dir:
             Output directory.
         """
 
-        snippets = self.extract_snippets(lessons)
+        snippets = self.extract_snippets(
+            documents,
+        )
 
         output_dir.mkdir(
             parents=True,
@@ -143,27 +155,28 @@ class SnippetBuilder:
 
     def extract_snippets(
         self,
-        lessons: list[Lesson],
+        documents: list[Document],
     ) -> list[SnippetEntry]:
         """
-        Extract snippets from lessons.
+        Extract snippets from documents.
 
         Parameters
         ----------
-        lessons:
-            Parsed lesson ASTs.
+        documents:
+            Parsed Point documents.
 
         Returns
         -------
         list[SnippetEntry]
+            Extracted snippets.
         """
 
         snippets: list[SnippetEntry] = []
 
         seen: set[str] = set()
 
-        for lesson in lessons:
-            for node in lesson.children:
+        for document in documents:
+            for node in document.children:
                 if not isinstance(
                     node,
                     Snippet,
@@ -171,7 +184,9 @@ class SnippetBuilder:
                     continue
 
                 if node.name in seen:
-                    raise ValueError(f"Duplicate snippet: {node.name}")
+                    raise ValueError(
+                        f"Duplicate snippet: {node.name}"
+                    )
 
                 seen.add(node.name)
 
@@ -179,25 +194,39 @@ class SnippetBuilder:
                     SnippetEntry(
                         name=node.name,
                         content=node.content,
-                        lesson=lesson.title,
+                        document=document.title,
                     )
                 )
 
-        snippets.sort(key=lambda snippet: snippet.name.lower())
+        snippets.sort(
+            key=lambda snippet: snippet.name.lower()
+        )
 
         return snippets
 
     def build_registry(
         self,
-        lessons: list[Lesson],
+        documents: list[Document],
     ) -> dict[str, str]:
         """
         Build snippet lookup registry.
+
+        Parameters
+        ----------
+        documents:
+            Parsed Point documents.
+
+        Returns
+        -------
+        dict[str, str]
+            Snippet lookup registry.
         """
 
-        registry = {}
+        registry: dict[str, str] = {}
 
-        for snippet in self.extract_snippets(lessons):
+        for snippet in self.extract_snippets(
+            documents,
+        ):
             registry[snippet.name] = snippet.content
 
         return registry
@@ -219,7 +248,10 @@ class SnippetBuilder:
             Output JSON file.
         """
 
-        data = [asdict(snippet) for snippet in snippets]
+        data = [
+            asdict(snippet)
+            for snippet in snippets
+        ]
 
         output_file.write_text(
             json.dumps(

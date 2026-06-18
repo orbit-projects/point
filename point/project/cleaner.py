@@ -13,15 +13,15 @@ source content and project configuration.
 Generated Content
 -----------------
 
-- markdown files
-- glossary files
-- graph files
-- learning path files
+- docs/
+- glossary/
+- graph/
+- collections/
 
 Preserved Content
 -----------------
 
-- lessons/
+- documents/
 - assets/
 - components/
 - point.toml
@@ -36,58 +36,107 @@ from point.project.manager import (
 )
 
 
-def clean_docs() -> bool:
+def clean_project_output() -> bool:
     """
-    Clean generated project output.
+    Remove generated Point artifacts.
 
     Preserves
     ---------
-    docs/index.md
-    docs/.vitepress/
+
+    documents/
+    assets/
+    components/
+    point.toml
+    package.json
 
     Removes
     --------
-    All generated documentation artifacts.
+
+    docs/*
+    glossary/*
+    graph/*
+    collections/*
+
+    Notes
+    -----
+
+    docs/index.md and docs/.vitepress
+    are preserved.
     """
 
     project = ProjectManager()
 
-    if not project.docs_dir.exists():
-        return True
+    #
+    # Documentation output
+    #
 
-    preserved = {
-        "index.md",
-        ".vitepress",
-    }
+    if project.docs_dir.exists():
+        preserved = {
+            "index.md",
+            ".vitepress",
+        }
 
-    for item in project.docs_dir.iterdir():
+        for item in project.docs_dir.iterdir():
+            if item.name in preserved:
+                continue
 
-        if item.name in preserved:
+            if item.is_dir():
+                rmtree(item)
+
+            else:
+                item.unlink(
+                    missing_ok=True,
+                )
+
+        #
+        # Remove empty directories
+        #
+
+        for directory in sorted(
+            project.docs_dir.rglob("*"),
+            key=lambda path: len(path.parts),
+            reverse=True,
+        ):
+            if (
+                directory.is_dir()
+                and directory.name != ".vitepress"
+                and not any(directory.iterdir())
+            ):
+                directory.rmdir()
+
+    #
+    # Generated resource directories
+    #
+
+    generated_directories = [
+        project.glossary_dir,
+        project.graph_dir,
+        project.collections_dir,
+    ]
+
+    for directory in generated_directories:
+        if not directory.exists():
             continue
 
-        if item.is_dir():
-            rmtree(item)
+        for item in directory.iterdir():
+            if item.is_dir():
+                rmtree(item)
 
-        else:
-            item.unlink(
-                missing_ok=True,
-            )
-
-    #
-    # Remove empty directories
-    # left behind by future generators.
-    #
-
-    for directory in sorted(
-        project.docs_dir.rglob("*"),
-        key=lambda p: len(p.parts),
-        reverse=True,
-    ):
-        if (
-            directory.is_dir()
-            and directory.name != ".vitepress"
-            and not any(directory.iterdir())
-        ):
-            directory.rmdir()
+            else:
+                item.unlink(
+                    missing_ok=True,
+                )
 
     return True
+
+
+def clean_docs() -> bool:
+    """
+    Backwards-compatible cleanup alias.
+
+    Returns
+    -------
+    bool
+    """
+
+    return clean_project_output()

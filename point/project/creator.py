@@ -8,21 +8,21 @@ Responsibilities
 ----------------
 
 - create Point projects
-- create lessons
+- create Point documents
 - install project templates
 - generate initial configuration
 
-Point 1.0 Project Layout
+Point Project Layout
 ------------------------
 
 project/
-├── lessons/
+├── documents/
 ├── docs/
 ├── assets/
 ├── components/
 ├── glossary/
 ├── graph/
-├── paths/
+├── collections/
 ├── .github/
 │   └── workflows/
 ├── package.json
@@ -37,25 +37,55 @@ from point.project.manager import (
 )
 
 
-def create_lesson(
+def create_document(
     name: str,
+    kind: str = "document",
 ) -> Path:
     """
-    Create a lesson file.
+    Create a Point document.
+
+    Parameters
+    ----------
+    name:
+        Document filename.
+
+    kind:
+        Document type.
+
+    Returns
+    -------
+    Path
+        Generated Point document path.
     """
 
     project = ProjectManager()
 
-    template_path = Path(__file__).parent.parent / "templates" / "lesson.point"
-
-    template = template_path.read_text(encoding="utf-8")
-
-    content = template.replace(
-        "{{title}}",
-        name.replace("-", " ").title(),
+    template_path = (
+        Path(__file__).parent.parent
+        / "templates"
+        / "document.point"
     )
 
-    output_path = project.lessons_dir / f"{name}.point"
+    template = template_path.read_text(
+        encoding="utf-8",
+    )
+
+    content = (
+        template
+        .replace(
+            "{{title}}",
+            name.replace("-", " ").title(),
+        )
+        .replace(
+            "{{kind}}",
+            kind,
+        )
+    )
+
+    output_path = (
+        project.documents_dir
+        / f"{name}.point"
+    )
 
     output_path.write_text(
         content,
@@ -73,11 +103,11 @@ def create_project(
     """
 
     #
-    # Core
+    # Core directories
     #
 
     directories = [
-        "lessons",
+        "documents",
         "docs",
         #
         # Assets
@@ -85,15 +115,17 @@ def create_project(
         "assets",
         "components",
         #
-        # Generated Content
+        # Generated resources
         #
         "glossary",
         "graph",
-        "paths",
+        "collections",
     ]
 
     for directory in directories:
-        (root / directory).mkdir(
+        (
+            root / directory
+        ).mkdir(
             parents=True,
             exist_ok=True,
         )
@@ -103,7 +135,9 @@ def create_project(
     #
 
     package_template = (
-        Path(__file__).parent.parent / "templates" / "package.json"
+        Path(__file__).parent.parent
+        / "templates"
+        / "package.json"
     )
 
     copyfile(
@@ -116,12 +150,12 @@ def create_project(
     #
 
     point_toml = """
-title = "My Point Course"
+title = "My Point Project"
 author = ""
 version = "1.0.0"
 description = ""
 
-lessons_dir = "lessons"
+documents_dir = "documents"
 docs_dir = "docs"
 
 assets_dir = "assets"
@@ -129,7 +163,7 @@ components_dir = "components"
 
 glossary_dir = "glossary"
 graph_dir = "graph"
-paths_dir = "paths"
+collections_dir = "collections"
 
 [theme]
 accent_color = "#646cff"
@@ -138,30 +172,49 @@ dark_mode = true
 [build]
 glossary = true
 knowledge_graph = true
-learning_paths = true
+collections = true
 components = true
 versioning = true
 """
 
-    (root / "point.toml").write_text(
+    (
+        root / "point.toml"
+    ).write_text(
         point_toml.strip() + "\n",
         encoding="utf-8",
     )
 
     #
-    # Welcome Lesson
+    # Welcome document
     #
 
-    lesson_template = (
-        Path(__file__).parent.parent / "templates" / "lesson.point"
+    template_path = (
+        Path(__file__).parent.parent
+        / "templates"
+        / "document.point"
     )
 
-    lesson = lesson_template.read_text(encoding="utf-8")
+    template = template_path.read_text(
+        encoding="utf-8",
+    )
 
-    (root / "lessons" / "welcome.point").write_text(
-        lesson.replace(
+    welcome = (
+        template
+        .replace(
             "{{title}}",
             "Welcome",
-        ),
+        )
+        .replace(
+            "{{kind}}",
+            "document",
+        )
+    )
+
+    (
+        root
+        / "documents"
+        / "welcome.point"
+    ).write_text(
+        welcome,
         encoding="utf-8",
     )

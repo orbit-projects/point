@@ -8,44 +8,38 @@ Responsibilities
 ----------------
 
 Verify project discovery utilities.
-
-Coverage
---------
-
-- lesson scanning
-- generic directory scanning
-- lesson names
-- lesson lookup maps
 """
 
 from pathlib import Path
 
 from point.project.scanner import (
-    lesson_map,
-    lesson_names,
+    document_map,
+    document_names,
     scan_directory,
-    scan_lessons,
+    scan_documents,
 )
 
 
-def test_scan_lessons(
+def test_scan_documents(
     tmp_path: Path,
 ):
     """
-    Discover Point lessons.
+    Discover Point documents.
     """
 
     (tmp_path / "intro.point").write_text("")
 
     (tmp_path / "advanced.point").write_text("")
 
-    lessons = scan_lessons(tmp_path)
+    documents = scan_documents(
+        tmp_path,
+    )
 
-    assert len(lessons) == 2
+    assert len(documents) == 2
 
-    assert lessons[0].name == "advanced.point"
+    assert documents[0].name == "advanced.point"
 
-    assert lessons[1].name == "intro.point"
+    assert documents[1].name == "intro.point"
 
 
 def test_scan_directory(
@@ -67,36 +61,42 @@ def test_scan_directory(
     assert len(files) == 2
 
 
-def test_lesson_names(
+def test_document_names(
     tmp_path: Path,
 ):
     """
-    Return lesson stems.
+    Return document stems.
     """
 
     (tmp_path / "intro.point").write_text("")
 
     (tmp_path / "advanced.point").write_text("")
 
-    names = lesson_names(tmp_path)
+    names = document_names(
+        tmp_path,
+    )
 
     assert "intro" in names
 
     assert "advanced" in names
 
 
-def test_lesson_map(
+def test_document_map(
     tmp_path: Path,
 ):
     """
-    Create lesson lookup table.
+    Create document lookup table.
     """
 
-    intro = tmp_path / "intro.point"
+    intro = (
+        tmp_path / "intro.point"
+    )
 
     intro.write_text("")
 
-    mapping = lesson_map(tmp_path)
+    mapping = document_map(
+        tmp_path,
+    )
 
     assert "intro" in mapping
 

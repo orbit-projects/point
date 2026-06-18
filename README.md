@@ -1,55 +1,56 @@
 # Point
 
-> A language for building lessons, courses, and educational documentation.
+> A structured authoring language for educational content, technical documentation, and knowledge systems.
 
-Point is an educational authoring language that transforms structured learning content into complete learning experiences.
+Point is a learning-first authoring language that transforms structured content into complete documentation websites, glossaries, knowledge graphs, collections, reusable content libraries, and educational resources.
 
-Write lessons using educational primitives such as definitions, concepts, learning goals, pitfalls, and learning paths — then generate documentation sites, glossaries, knowledge graphs, and reusable learning resources automatically.
+Unlike traditional Markdown, Point provides semantic building blocks for concepts, definitions, terms, references, diagrams, collections, reusable snippets, and content relationships.
+
+Point understands the structure of knowledge—not just the formatting of text.
 
 ---
 
 ## Why Point?
 
-Most documentation systems are designed around pages.
+Most documentation systems focus on pages.
 
-Education is not just pages.
+Point focuses on knowledge.
 
-Teaching involves:
+A typical Markdown document contains concepts, definitions, references, diagrams, and relationships, but these structures are hidden inside plain text.
 
-* learning goals
-* concepts
-* definitions
-* prerequisites
-* pitfalls
-* practice
-* progression
+Point makes them explicit.
 
-Traditional Markdown treats these as plain text.
+Because content is structured, Point can automatically generate:
 
-Point treats them as first-class educational constructs.
+* Documentation sites
+* Glossaries
+* Knowledge graphs
+* Collections
+* Cross references
+* Content registries
+* Educational resources
 
-This allows Point to understand your content and generate richer educational resources automatically.
+from a single source of truth.
 
 ---
 
 ## Example
 
 ```point
-@lesson Dependency Injection
-
-@goals
-
-- Understand dependency injection
-- Build a simple container
-- Recognize common pitfalls
-
-@end
+@document Dependency Injection
 
 @definition Dependency Injection
 
 A design technique where dependencies are
 provided from the outside rather than
 created internally.
+
+@end
+
+@concept Inversion of Control
+
+Dependency Injection is a form of
+Inversion of Control.
 
 @end
 
@@ -60,112 +61,71 @@ for dependency injection.
 
 @end
 
-@summary
+@references
 
-Dependency injection improves modularity,
-testability, and maintainability.
+Clean Architecture
+Patterns of Enterprise Application Architecture
 
 @end
 ```
 
 ---
 
-## What Point Generates
+## Features
 
-From a single lesson source, Point can generate:
+### Structured Content
 
-### Documentation
+* Documents
+* Sections
+* Metadata
+* References
+* Reading Lists
+* Related Content
 
-* Markdown
-* VitePress sites
-* Course navigation
-* Educational layouts
+### Knowledge Modeling
 
-### Learning Resources
-
-* Glossaries
-* Learning paths
-* Concept registries
-* Snippet registries
-
-### Knowledge Systems
-
-* Knowledge graphs
-* Concept relationships
-* Cross-references
-* Learning dependencies
-
----
-
-## Educational Building Blocks
-
-### Lesson Structure
-
-```point
-@lesson
-@section
-@goals
-@summary
-@meta
-```
+* Definitions
+* Terms
+* Concepts
+* Theorems
+* Concept Registries
+* Knowledge Graphs
 
 ### Educational Content
 
-```point
-@definition
-@concept
-@term
-@pitfall
-@bestpractice
-@interview
-```
+* Notes
+* Tips
+* Warnings
+* Dangers
+* Pitfalls
+* Best Practices
+* Interview Questions
+* Summaries
 
-### Learning Aids
+### Visual Content
 
-```point
-@note
-@tip
-@warning
-@danger
-@info
-```
-
-### Visuals & Media
-
-```point
-@code
-@diagram
-@image
-@figure
-@gallery
-```
-
-### Mathematics
-
-```point
-@math
-@equation
-@theorem
-```
-
-### Navigation & Relationships
-
-```point
-@next
-@previous
-@related
-@references
-@reading
-```
+* Code Blocks
+* Diagrams
+* Images
+* Figures
+* Galleries
+* Mathematical Expressions
 
 ### Reusable Content
 
-```point
-@snippet
-@use
-@include
-@component
-```
+* Snippets
+* Includes
+* Components
+* Shared Content Libraries
+
+### Resource Generation
+
+* Glossary Generation
+* Collection Generation
+* Knowledge Graph Generation
+* Snippet Registry Generation
+* Markdown Generation
+* VitePress Integration
 
 ---
 
@@ -179,19 +139,19 @@ pip install point
 
 ## Quick Start
 
-Create a course:
+Initialize a project:
 
 ```bash
-point init my-course
+point init my-project
 ```
 
-Create a lesson:
+Create a document:
 
 ```bash
-point create lesson intro
+point create document introduction
 ```
 
-Build the course:
+Build the project:
 
 ```bash
 point build-all
@@ -214,17 +174,20 @@ point package
 ## Project Structure
 
 ```text
-my-course/
+my-project/
 
-├── lessons/
-│   └── intro.point
+├── documents/
+│   └── introduction.point
 │
 ├── docs/
-│   ├── intro.md
 │   └── .vitepress/
 │
 ├── assets/
 ├── components/
+│
+├── glossary/
+├── graph/
+├── collections/
 │
 ├── package.json
 └── point.toml
@@ -243,26 +206,60 @@ Parser
     ↓
 AST
     ↓
+Validator
+    ↓
 Compiler
     ↓
 Markdown
     ↓
 VitePress
     ↓
-Static Learning Site
+Static Website
 ```
+
+---
+
+## Generated Resources
+
+Point can automatically generate:
+
+### Documentation
+
+* Markdown
+* VitePress Sites
+* Navigation Structures
+
+### Knowledge Resources
+
+* Glossaries
+* Knowledge Graphs
+* Concept Registries
+
+### Content Resources
+
+* Collections
+* Snippet Registries
+* Reusable Content Libraries
+
+### Discovery Resources
+
+* Related Content
+* References
+* Cross Links
 
 ---
 
 ## Philosophy
 
-Point is not a documentation generator.
+Point is not a markup language.
 
-Point is an educational authoring system.
+Point is a structured content language.
 
-Documentation is one of its outputs.
+The goal is to make knowledge, educational material, and technical documentation machine-understandable while remaining simple for humans to write.
 
-The goal is to give educators, developers, and course creators a language that understands teaching as a first-class concern.
+Write once.
+
+Generate knowledge systems automatically.
 
 ---
 

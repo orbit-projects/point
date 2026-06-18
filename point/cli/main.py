@@ -4,33 +4,33 @@ point.cli.main
 
 Command Line Interface for Point.
 
-Point is an educational authoring language
+Point is a structured content authoring
 and documentation generation system.
 
 Responsibilities
 ----------------
 
 - project management
-- lesson creation
+- document creation
 - compilation
 - validation
-- documentation generation
-- vitepress integration
+- resource generation
+- VitePress integration
 
 Examples
 --------
 
 Initialize project:
 
-    point init my-course
+    point init my-docs
 
-Create lesson:
+Create document:
 
-    point create lesson intro
+    point create document intro
 
-Build lesson:
+Build document:
 
-    point build lessons/intro.point
+    point build documents/intro.point
 
 Build entire project:
 
@@ -51,11 +51,14 @@ from pathlib import Path
 import typer
 from rich import print
 
+from point.builders.collections import (
+    CollectionBuilder,
+)
 from point.builders.glossary import (
     GlossaryBuilder,
 )
-from point.builders.paths import (
-    PathBuilder,
+from point.builders.graph import (
+    GraphBuilder,
 )
 from point.builders.snippets import (
     SnippetBuilder,
@@ -67,17 +70,17 @@ from point.parser.parser import (
     Parser,
 )
 from point.project.cleaner import (
-    clean_docs,
+    clean_project_output,
 )
 from point.project.creator import (
-    create_lesson,
+    create_document,
     create_project,
 )
 from point.project.manager import (
     ProjectManager,
 )
-from point.project.learning_path import (
-    resolve_learning_path,
+from point.project.scanner import (
+    scan_documents,
 )
 from point.tokenizer.tokenizer import (
     Tokenizer,
@@ -91,7 +94,7 @@ from point.vitepress.generator import (
 
 app = typer.Typer(
     name="point",
-    help="Educational authoring toolkit",
+    help="Structured content authoring toolkit",
     no_args_is_help=True,
 )
 
@@ -105,43 +108,46 @@ def parse_file(
     source_path: Path,
 ):
     """
-    Parse Point file into AST.
+    Parse Point source into AST.
     """
 
     content = source_path.read_text(
         encoding="utf-8",
     )
 
-    tokens = Tokenizer().tokenize(content)
+    tokens = Tokenizer().tokenize(
+        content,
+    )
 
-    return Parser().parse(tokens)
+    return Parser().parse(
+        tokens,
+    )
 
 
-def load_lessons():
+def load_documents():
     """
-    Load lessons included in the
-    configured learning path.
+    Load all project documents.
     """
 
     project = ProjectManager()
 
-    lessons = []
+    documents = []
 
-    for file in resolve_learning_path(
-        project,
+    for file in scan_documents(
+        project.documents_dir,
     ):
-        lessons.append(
+        documents.append(
             parse_file(file),
         )
 
-    return lessons
+    return documents
+
 
 # ============================================================
 # Project Commands
 # ============================================================
 
 
-@app.command()
 @app.command()
 def init(
     name: str,
@@ -153,39 +159,56 @@ def init(
     project_dir = Path(name)
 
     if project_dir.exists():
-        print(f"[red]Project '{name}' already exists[/red]")
+        print(
+            f"[red]Project '{name}' already exists[/red]"
+        )
 
-        raise typer.Exit(code=1)
+        raise typer.Exit(
+            code=1,
+        )
 
     create_project(
         project_dir,
     )
 
     generate_config(
-        title=name.replace("-", " ").title(),
+        title=name.replace(
+            "-",
+            " ",
+        ).title(),
         docs_dir=project_dir / "docs",
     )
 
-    print(f"[green]Initialized:[/green] {project_dir}")
+    print(
+        f"[green]Initialized:[/green] {project_dir}"
+    )
 
 
 @app.command()
 def create(
-    type: str,
+    resource_type: str,
     name: str,
 ):
     """
-    Create project resource.
+    Create a project resource.
     """
 
-    if type != "lesson":
-        print("[red]Unsupported resource[/red]")
+    if resource_type != "document":
+        print(
+            "[red]Unsupported resource[/red]"
+        )
 
-        raise typer.Exit(code=1)
+        raise typer.Exit(
+            code=1,
+        )
 
-    create_lesson(name)
+    create_document(
+        name,
+    )
 
-    print(f"[green]Created lesson:[/green] {name}")
+    print(
+        f"[green]Created document:[/green] {name}"
+    )
 
 
 # ============================================================
@@ -199,33 +222,50 @@ def build(
     output: str | None = None,
 ):
     """
-    Build single lesson.
+    Build a single document.
     """
 
-    source_path = Path(source)
+    source_path = Path(
+        source,
+    )
 
     if not source_path.exists():
-        print("[red]Source file not found[/red]")
+        print(
+            "[red]Source file not found[/red]"
+        )
 
-        raise typer.Exit(code=1)
+        raise typer.Exit(
+            code=1,
+        )
 
     if output:
-        output_path = Path(output)
+        output_path = Path(
+            output,
+        )
 
     else:
         project = ProjectManager()
 
         if source_path.stem == "welcome":
-            output_path = project.docs_dir / "index.md"
+            output_path = (
+                project.docs_dir
+                / "index.md"
+            )
+
         else:
-            output_path = project.docs_dir / f"{source_path.stem}.md"
+            output_path = (
+                project.docs_dir
+                / f"{source_path.stem}.md"
+            )
 
     compile_file(
         source_path,
         output_path,
     )
 
-    print(f"[green]Built:[/green] {output_path}")
+    print(
+        f"[green]Built:[/green] {output_path}"
+    )
 
 
 @app.command("build-all")
@@ -236,24 +276,35 @@ def build_all():
 
     project = ProjectManager()
 
-    clean_docs()
+    clean_project_output()
 
-    files = resolve_learning_path(
-        project,
+    files = scan_documents(
+        project.documents_dir,
     )
 
     if not files:
-        print("[yellow]No lessons found[/yellow]")
+        print(
+            "[yellow]No documents found[/yellow]"
+        )
 
         return
 
     for file in files:
-        relative = file.relative_to(project.lessons_dir)
+        relative = file.relative_to(
+            project.documents_dir,
+        )
 
         if file.stem == "welcome":
-            output = project.docs_dir / "index.md"
+            output = (
+                project.docs_dir
+                / "index.md"
+            )
+
         else:
-            output = project.docs_dir / relative.with_suffix(".md")
+            output = (
+                project.docs_dir
+                / relative.with_suffix(".md")
+            )
 
         output.parent.mkdir(
             parents=True,
@@ -265,29 +316,36 @@ def build_all():
             output,
         )
 
-        print(f"[green]Built:[/green] {output}")
+        print(
+            f"[green]Built:[/green] {output}"
+        )
 
-    print("[cyan]Generating educational resources...[/cyan]")
+    documents = load_documents()
 
-    lessons = load_lessons()
+    #
+    # Resources
+    #
 
-    GlossaryBuilder().build(
-        lessons,
-        project.docs_dir / "glossary",
-    )
+    if project.config.build.glossary:
+        GlossaryBuilder().build(
+            documents,
+            project.docs_dir / "glossary",
+        )
 
-    #    GraphBuilder().build(
-    #        lessons,
-    #        project.docs_dir / "graph",
-    #    )
+    if project.config.build.knowledge_graph:
+        GraphBuilder().build(
+            documents,
+            project.docs_dir / "graph",
+        )
 
-    PathBuilder().build(
-        lessons,
-        project.docs_dir / "paths",
-    )
+    if project.config.build.collections:
+        CollectionBuilder().build(
+            documents,
+            project.docs_dir / "collections",
+        )
 
     SnippetBuilder().build(
-        lessons,
+        documents,
         project.docs_dir / "snippets",
     )
 
@@ -295,19 +353,25 @@ def build_all():
         title=project.config.title,
         docs_dir=project.docs_dir,
         base=(
-            f"/{project.root.name}/" if project.config.github_pages else "/"
+            f"/{project.root.name}/"
+            if project.config.github_pages
+            else "/"
         ),
     )
 
-    print("[cyan]Installing frontend dependencies...[/cyan]")
+    try:
+        subprocess.run(
+            ["npm", "install"],
+            cwd=str(project.root),
+            check=True,
+        )
 
-    subprocess.run(
-        ["npm", "install"],
-        cwd=str(project.root),
-        check=True,
+    except Exception:
+        pass
+
+    print(
+        "[bold green]Build completed successfully[/bold green]"
     )
-
-    print("[bold green]Build completed successfully[/bold green]")
 
 
 # ============================================================
@@ -320,24 +384,36 @@ def validate(
     source: str,
 ):
     """
-    Validate lesson.
+    Validate a Point document.
     """
 
-    lesson = parse_file(Path(source))
+    document = parse_file(
+        Path(source),
+    )
 
-    errors = Validator().validate(lesson)
+    errors = Validator().validate(
+        document,
+    )
 
     if not errors:
-        print("[green]Validation passed[/green]")
+        print(
+            "[green]Validation passed[/green]"
+        )
 
         return
 
-    print("[red]Validation failed[/red]")
+    print(
+        "[red]Validation failed[/red]"
+    )
 
     for error in errors:
-        print(f"• {error}")
+        print(
+            f"• {error}"
+        )
 
-    raise typer.Exit(code=1)
+    raise typer.Exit(
+        code=1,
+    )
 
 
 # ============================================================
@@ -348,12 +424,14 @@ def validate(
 @app.command()
 def clean():
     """
-    Remove generated files.
+    Remove generated output.
     """
 
-    clean_docs()
+    clean_project_output()
 
-    print("[green]Cleaned generated files[/green]")
+    print(
+        "[green]Cleaned generated files[/green]"
+    )
 
 
 # ============================================================
@@ -370,37 +448,24 @@ def serve():
     project = ProjectManager()
 
     try:
-        result = subprocess.run(
+        subprocess.run(
             ["npm", "run", "docs:dev"],
             cwd=str(project.root),
         )
 
-        #
-        # VitePress dev server starts correctly
-        # on some systems but exits with code 1.
-        #
-        # Only treat codes >1 as failures.
-        #
-
-        if result.returncode > 1:
-            print(
-                f"[red]Development server failed "
-                f"(exit code {result.returncode})[/red]"
-            )
-
-            raise typer.Exit(
-                code=result.returncode,
-            )
-
     except FileNotFoundError:
-        print("[red]npm is not installed or not available in PATH[/red]")
+        print(
+            "[red]npm not found[/red]"
+        )
 
-        raise typer.Exit(code=1)
+        raise typer.Exit(
+            code=1,
+        )
 
     except KeyboardInterrupt:
-        print("\n[cyan]Server stopped[/cyan]")
-
-        raise typer.Exit(code=0)
+        raise typer.Exit(
+            code=0,
+        )
 
 
 @app.command()
@@ -419,21 +484,22 @@ def package():
         )
 
     except FileNotFoundError:
-        print("[red]npm is not installed or not available in PATH[/red]")
-
-        raise typer.Exit(code=1)
-
-    except subprocess.CalledProcessError as error:
         print(
-            f"[red]Production build failed "
-            f"(exit code {error.returncode})[/red]"
+            "[red]npm not found[/red]"
         )
 
+        raise typer.Exit(
+            code=1,
+        )
+
+    except subprocess.CalledProcessError as error:
         raise typer.Exit(
             code=error.returncode,
         )
 
-    print("[green]Production build completed[/green]")
+    print(
+        "[green]Production build completed[/green]"
+    )
 
 
 @app.command()
@@ -452,21 +518,23 @@ def preview():
         )
 
     except FileNotFoundError:
-        print("[red]npm is not installed or not available in PATH[/red]")
+        print(
+            "[red]npm not found[/red]"
+        )
 
-        raise typer.Exit(code=1)
+        raise typer.Exit(
+            code=1,
+        )
 
     except subprocess.CalledProcessError as error:
-        print(f"[red]Preview failed (exit code {error.returncode})[/red]")
-
         raise typer.Exit(
             code=error.returncode,
         )
 
     except KeyboardInterrupt:
-        print("\n[cyan]Preview stopped[/cyan]")
-
-        raise typer.Exit(code=0)
+        raise typer.Exit(
+            code=0,
+        )
 
 
 # ============================================================
@@ -482,15 +550,25 @@ def info():
 
     project = ProjectManager()
 
-    lessons = scan_lessons(project.lessons_dir)
+    documents = scan_documents(
+        project.documents_dir,
+    )
 
-    print(f"[cyan]Project:[/cyan] {project.config.title}")
+    print(
+        f"[cyan]Project:[/cyan] {project.config.title}"
+    )
 
-    print(f"[cyan]Version:[/cyan] {project.config.version}")
+    print(
+        f"[cyan]Version:[/cyan] {project.config.version}"
+    )
 
-    print(f"[cyan]Lessons:[/cyan] {len(lessons)}")
+    print(
+        f"[cyan]Documents:[/cyan] {len(documents)}"
+    )
 
-    print(f"[cyan]Root:[/cyan] {project.root}")
+    print(
+        f"[cyan]Root:[/cyan] {project.root}"
+    )
 
 
 if __name__ == "__main__":

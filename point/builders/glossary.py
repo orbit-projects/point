@@ -8,7 +8,7 @@ Responsibilities
 ----------------
 
 Generate glossary resources from
-Point educational content.
+Point documents.
 
 Features
 --------
@@ -20,17 +20,17 @@ Features
 Pipeline
 --------
 
-Lessons
-    ↓
+Documents
+     ↓
 
 Parser
-    ↓
+     ↓
 
 AST
-    ↓
+     ↓
 
 GlossaryBuilder
-    ↓
+     ↓
 
 glossary.json
 glossary/index.md
@@ -38,8 +38,19 @@ glossary/index.md
 Overview
 --------
 
-GlossaryBuilder scans lesson ASTs and extracts all
-Term nodes.
+GlossaryBuilder scans document ASTs and extracts
+Term and Definition nodes.
+
+A glossary may be generated from:
+
+- lessons
+- guides
+- references
+- RFCs
+- standards
+- roadmaps
+- blogs
+- articles
 
 Example
 -------
@@ -57,7 +68,8 @@ Generated JSON:
     {
         "term": "Dependency Injection",
         "definition": "Providing dependencies externally.",
-        "lesson": "dependency-injection"
+        "document": "Dependency Injection Guide",
+        "kind": "guide"
     }
 
 Generated Markdown:
@@ -79,7 +91,7 @@ from pathlib import (
 
 from point.ast.nodes import (
     Definition,
-    Lesson,
+    Document,
     Term,
 )
 
@@ -87,7 +99,7 @@ from point.ast.nodes import (
 @dataclass(slots=True)
 class GlossaryEntry:
     """
-    Represents a single glossary entry.
+    Represents a glossary entry.
 
     Attributes
     ----------
@@ -98,23 +110,28 @@ class GlossaryEntry:
     definition:
         Term definition.
 
-    lesson:
-        Source lesson title.
+    document:
+        Source document title.
+
+    kind:
+        Source document kind.
     """
 
     term: str
 
     definition: str
 
-    lesson: str
+    document: str
+
+    kind: str
 
 
 class GlossaryBuilder:
     """
     Build glossary resources.
 
-    Output
-    ------
+    Outputs
+    -------
 
     glossary.json
 
@@ -123,7 +140,7 @@ class GlossaryBuilder:
 
     def build(
         self,
-        lessons: list[Lesson],
+        documents: list[Document],
         output_dir: Path,
     ) -> None:
         """
@@ -131,15 +148,16 @@ class GlossaryBuilder:
 
         Parameters
         ----------
-
-        lessons:
-            Parsed lesson ASTs.
+        documents:
+            Parsed Point documents.
 
         output_dir:
             Glossary output directory.
         """
 
-        entries = self.extract_entries(lessons)
+        entries = self.extract_entries(
+            documents,
+        )
 
         output_dir.mkdir(
             parents=True,
@@ -158,30 +176,32 @@ class GlossaryBuilder:
 
     def extract_entries(
         self,
-        lessons: list[Lesson],
+        documents: list[Document],
     ) -> list[GlossaryEntry]:
         """
-        Extract glossary entries from lessons.
+        Extract glossary entries from documents.
 
         Parameters
         ----------
-
-        lessons:
-            Parsed lesson ASTs.
+        documents:
+            Parsed Point documents.
 
         Returns
         -------
-
         list[GlossaryEntry]
+            Extracted glossary entries.
         """
 
         entries: list[GlossaryEntry] = []
 
-        for lesson in lessons:
-            for node in lesson.children:
+        for document in documents:
+            for node in document.children:
                 if not isinstance(
                     node,
-                    (Term, Definition),
+                    (
+                        Term,
+                        Definition,
+                    ),
                 ):
                     continue
 
@@ -189,11 +209,14 @@ class GlossaryBuilder:
                     GlossaryEntry(
                         term=node.title,
                         definition=node.content,
-                        lesson=lesson.title,
+                        document=document.title,
+                        kind=document.kind,
                     )
                 )
 
-        entries.sort(key=lambda entry: entry.term.lower())
+        entries.sort(
+            key=lambda entry: entry.term.lower(),
+        )
 
         return entries
 
@@ -207,19 +230,19 @@ class GlossaryBuilder:
 
         Parameters
         ----------
-
         entries:
             Glossary entries.
 
         output_file:
-            JSON output path.
+            Output JSON file.
         """
 
         data = [
             {
                 "term": entry.term,
                 "definition": entry.definition,
-                "lesson": entry.lesson,
+                "document": entry.document,
+                "kind": entry.kind,
             }
             for entry in entries
         ]
@@ -242,12 +265,11 @@ class GlossaryBuilder:
 
         Parameters
         ----------
-
         entries:
             Glossary entries.
 
         output_file:
-            Markdown output path.
+            Markdown output file.
         """
 
         lines = [
@@ -262,7 +284,7 @@ class GlossaryBuilder:
                     "",
                     "Add terms using:",
                     "",
-                    "```txt",
+                    "```point",
                     "@term Example",
                     "",
                     "Description of the term.",
@@ -280,7 +302,7 @@ class GlossaryBuilder:
                     "",
                     entry.definition,
                     "",
-                    f"> Source: {entry.lesson}",
+                    f"> Source: {entry.document} ({entry.kind})",
                     "",
                 ]
             )

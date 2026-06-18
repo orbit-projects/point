@@ -18,7 +18,7 @@ Features
 - theme generation
 - vitepress config generation
 - glossary integration
-- learning path integration
+- collections integration
 - knowledge graph integration
 - GitHub Pages support
 - custom styling support
@@ -43,12 +43,11 @@ Static Documentation Site
 
 from pathlib import Path
 
-from point.project.learning_path import (
-    resolve_learning_path,
-)
-
 from point.project.manager import (
     ProjectManager,
+)
+from point.project.scanner import (
+    scan_documents,
 )
 
 
@@ -64,32 +63,32 @@ def generate_index(
 
 Built with Point.
 
-## Start Learning
+## Explore
 
-Use the sidebar to explore lessons and learning resources.
+Use the sidebar to navigate documents and generated resources.
 
-## Learning Resources
+## Resources
 
 Point automatically generates:
 
 - Glossary
-- Learning Paths
+- Collections
 - Knowledge Graph
 
 ## Features
 
-- Structured lessons
-- Educational concepts
-- Definitions and terms
+- Structured documents
+- Concepts and definitions
 - Reusable content
+- Collections
 - Knowledge relationships
 
-## Next Steps
+## Getting Started
 
-1. Open a lesson
+1. Open a document
 2. Explore the glossary
-3. Follow a learning path
-4. Discover related concepts
+3. Browse collections
+4. Discover connected concepts
 """
 
     (docs_dir / "index.md").write_text(
@@ -103,56 +102,50 @@ def generate_sidebar(
 ) -> str:
     """
     Generate sidebar configuration.
-
-    Parameters
-    ----------
-    docs_dir:
-        Documentation directory.
-
-    Returns
-    -------
-    str
-        JavaScript sidebar object.
     """
 
-    lessons = resolve_learning_path(
-        project,
+    documents = scan_documents(
+        project.documents_dir,
     )
 
-    groups = {}
-    section_order = []
+    groups: dict[str, list[str]] = {}
 
+    section_order: list[str] = []
 
-    for lesson in lessons:
-        relative = lesson.relative_to(
-            project.lessons_dir,
+    for document in documents:
+        relative = document.relative_to(
+            project.documents_dir,
         )
-        
+
         relative = relative.with_suffix(
             ".md",
         )
 
         if len(relative.parts) > 1:
             section = (
-                relative.parts[0].replace("-", " ").replace("_", " ").title()
-            )
-
-        else:
-            section = "Lessons"
-
-        if lesson.stem == "welcome":
-            title = "Welcome"
-            link = "/"
-        else:
-            title = (
-                lesson.stem
+                relative.parts[0]
                 .replace("-", " ")
                 .replace("_", " ")
                 .title()
             )
-        
+
+        else:
+            section = "Documents"
+
+        if document.stem == "welcome":
+            title = "Welcome"
+            link = "/"
+
+        else:
+            title = (
+                document.stem
+                .replace("-", " ")
+                .replace("_", " ")
+                .title()
+            )
+
             link = "/" + str(
-                relative.with_suffix("")
+                relative.with_suffix(""),
             ).replace(
                 "\\",
                 "/",
@@ -160,20 +153,23 @@ def generate_sidebar(
 
         if section not in groups:
             groups[section] = []
-            section_order.append(section)
-        
+
+            section_order.append(
+                section,
+            )
+
         groups[section].append(
             f"""{{
 text: "{title}",
 link: "{link}"
 }}"""
         )
-        
-    sidebar_sections = []
+
+    sidebar_sections: list[str] = []
 
     for section in section_order:
-    
         items = groups[section]
+
         sidebar_sections.append(
             f"""{{
 text: "{section}",
@@ -197,25 +193,20 @@ def generate_theme(
     Generate Point VitePress theme.
     """
 
-    theme_dir = docs_dir / ".vitepress" / "theme"
+    theme_dir = (
+        docs_dir
+        / ".vitepress"
+        / "theme"
+    )
 
     theme_dir.mkdir(
         parents=True,
         exist_ok=True,
     )
 
-    components_dir = theme_dir / "components"
-    
-    components_dir.mkdir(
-        parents=True,
-        exist_ok=True,
-    )
-    
-    #
-    # Custom CSS
-    #
-
-    (theme_dir / "custom.css").write_text(
+    (
+        theme_dir / "custom.css"
+    ).write_text(
         """
 :root {
 
@@ -223,7 +214,8 @@ def generate_theme(
     --vp-c-brand-2: #b433ff;
     --vp-c-brand-3: #cb66ff;
 
-    --vp-c-brand-soft: rgba(157, 0, 255, 0.15);
+    --vp-c-brand-soft:
+        rgba(157, 0, 255, 0.15);
 }
 
 .point-definition,
@@ -233,132 +225,40 @@ def generate_theme(
     margin: 1rem 0;
 }
 
-.point-learning-goals {
-
-    padding: 1rem;
-}
-
-.point-summary {
-
-    margin-top: 2rem;
-}
-
+.point-note,
+.point-tip,
 .point-warning {
 
     margin: 1rem 0;
 }
 
-.point-note {
+.point-document {
 
     margin: 1rem 0;
 }
 
-.point-tip {
+.point-collection {
 
     margin: 1rem 0;
-}
-
-.lesson-card {
-
-    border-radius: 12px;
 }
 """.strip()
         + "\n",
         encoding="utf-8",
     )
 
-    #
-    # Theme Entry
-    #
-
-    (components_dir / "MermaidDiagram.vue").write_text(
-    """
-<script setup>
-import mermaid from "mermaid"
-import { onMounted, ref } from "vue"
-
-const props = defineProps({
-  chart: String,
-})
-
-const el = ref()
-
-onMounted(async () => {
-  mermaid.initialize({
-    startOnLoad: false,
-
-    flowchart: {
-      useMaxWidth: false,
-      htmlLabels: true,
-    },
-  })
-
-  const id =
-    `mermaid-${Math.random().toString(36).slice(2)}`
-
-  const { svg } = await mermaid.render(
-    id,
-    props.chart,
-  )
-
-  el.value.innerHTML = svg
-
-  const svgElement =
-    el.value.querySelector("svg")
-
-  if (svgElement) {
-    svgElement.removeAttribute("width")
-    svgElement.removeAttribute("height")
-
-    svgElement.style.width = "100%"
-    svgElement.style.height = "auto"
-    svgElement.style.maxWidth = "none"
-  }
-})
-</script>
-
-<template>
-  <div class="mermaid-wrapper">
-    <div ref="el"></div>
-  </div>
-</template>
-
-<style scoped>
-.mermaid-wrapper {
-  display: flex;
-  justify-content: center;
-  margin: 2rem 0;
-  overflow-x: auto;
-}
-
-.mermaid-wrapper svg {
-  min-width: 900px;
-  height: auto;
-}
-</style>
-    """.strip()
-        + "\\n",
-        encoding="utf-8",
-    )
-    
-    (theme_dir / "index.ts").write_text(
+    (
+        theme_dir / "index.ts"
+    ).write_text(
         """
-import DefaultTheme from "vitepress/theme"
-import "./custom.css"
+import DefaultTheme
+from "vitepress/theme"
 
-import MermaidDiagram from "./components/MermaidDiagram.vue"
+import "./custom.css"
 
 export default {
   extends: DefaultTheme,
-
-  enhanceApp({ app }) {
-    app.component(
-      "MermaidDiagram",
-      MermaidDiagram,
-    )
-  },
 }
-    """.strip()
+""".strip()
         + "\n",
         encoding="utf-8",
     )
@@ -382,20 +282,12 @@ def generate_config(
 
     base:
         Deployment base path.
-
-    Examples
-    --------
-
-    Local:
-
-        base="/"
-
-    GitHub Pages:
-
-        base="/learn-undreamt/"
     """
 
-    vitepress_dir = docs_dir / ".vitepress"
+    vitepress_dir = (
+        docs_dir
+        / ".vitepress"
+    )
 
     vitepress_dir.mkdir(
         parents=True,
@@ -403,13 +295,14 @@ def generate_config(
     )
 
     project = ProjectManager()
-    
+
     sidebar = generate_sidebar(
         project,
     )
 
     content = f"""\
-import {{ defineConfig }} from "vitepress"
+import {{ defineConfig }}
+from "vitepress"
 
 export default defineConfig({{
 
@@ -447,8 +340,13 @@ link: "/glossary/"
 }},
 
 {{
-text: "Paths",
-link: "/paths/"
+text: "Collections",
+link: "/collections/"
+}},
+
+{{
+text: "Graph",
+link: "/graph/"
 }},
 
 ],
@@ -461,9 +359,14 @@ sidebar:
 }})
 """
 
-    (vitepress_dir / "config.mts").write_text(
+    (
+        vitepress_dir
+        / "config.mts"
+    ).write_text(
         content,
         encoding="utf-8",
     )
 
-    generate_theme(docs_dir)
+    generate_theme(
+        docs_dir,
+    )

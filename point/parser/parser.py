@@ -7,48 +7,35 @@ Parser implementation for Point.
 The parser converts lexical tokens into an
 Abstract Syntax Tree (AST).
 
-Point 1.0 Parsing Model
+Point Parsing Model
 -----------------------
 
-Every block directive follows:
+Point supports multiple document kinds through
+a unified document model.
 
-    @directive [optional argument]
+All root directives produce a Document AST node.
 
-    content
-
-    @end
-
-Examples:
-
-    @warning
-
-    Avoid service locators.
-
-    @end
-
-    @section Introduction
-
-    Dependency injection reduces coupling.
-
-    @end
-
-The parser is responsible for:
+Responsibilities
+----------------
 
 - directive interpretation
 - block collection
 - AST node creation
-- lesson construction
+- document construction
 """
 
 from point.ast.nodes import (
+    DOCUMENT_KINDS,
     BestPractice,
     Code,
+    Collection,
     Component,
     Concept,
     Concepts,
     Danger,
     Definition,
     Diagram,
+    Document,
     Equation,
     Figure,
     Gallery,
@@ -57,12 +44,10 @@ from point.ast.nodes import (
     Include,
     Info,
     Interview,
-    Lesson,
     Math,
     Meta,
     Next,
     Note,
-    Path,
     Pitfall,
     Previous,
     Reading,
@@ -86,18 +71,48 @@ from point.tokenizer.token import (
     TokenType,
 )
 
+ROOT_DOCUMENT_DIRECTIVES = frozenset(DOCUMENT_KINDS)
+
+BLOCK_NODES = {
+    "note": Note,
+    "tip": Tip,
+    "warning": Warning,
+    "danger": Danger,
+    "info": Info,
+    "pitfall": Pitfall,
+    "bestpractice": BestPractice,
+    "interview": Interview,
+    "math": Math,
+    "equation": Equation,
+    "summary": Summary,
+}
+
+TITLED_NODES = {
+    "section": Section,
+    "definition": Definition,
+    "term": Term,
+    "concept": Concept,
+    "theorem": Theorem,
+}
+
 
 class Parser:
     """
     Point parser.
+
+    Converts token streams into Point AST
+    documents.
     """
 
     def parse(
         self,
         tokens: list[Token],
-    ) -> Lesson:
+    ) -> Document:
+        """
+        Parse a token stream into a Point document.
+        """
 
-        lesson: Lesson | None = None
+        document: Document | None = None
 
         i = 0
 
@@ -108,38 +123,38 @@ class Parser:
                 i += 1
                 continue
 
+            directive = token.value
+
             #
-            # Lesson
+            # Root document
             #
 
-            if token.value == "lesson":
-                title = self._text_after(
-                    tokens,
-                    i,
-                )
-
-                lesson = Lesson(
-                    title=title,
+            if directive in ROOT_DOCUMENT_DIRECTIVES:
+                document = Document(
+                    title=self._text_after(tokens, i),
+                    kind=directive,
                 )
 
                 i += 2
                 continue
 
-            if lesson is None:
-                raise ValueError("Lesson must be declared first.")
+            if document is None:
+                raise ValueError(
+                    "A root document directive must be declared first."
+                )
 
             #
             # Meta
             #
 
-            if token.value == "meta":
+            if directive == "meta":
                 block, i = self._collect_block(
                     tokens,
                     i + 1,
-                    "meta",
+                    directive,
                 )
 
-                values = {}
+                values: dict[str, str] = {}
 
                 for line in block:
                     if ":" not in line:
@@ -152,10 +167,9 @@ class Parser:
 
                     values[key.strip()] = value.strip()
 
-                lesson.children.append(
-                    Meta(
-                        values=values,
-                    )
+                self._append(
+                    document,
+                    Meta(values=values),
                 )
 
                 continue
@@ -164,15 +178,21 @@ class Parser:
             # Goals
             #
 
-            if token.value == "goals":
+            if directive == "goals":
                 block, i = self._collect_block(
                     tokens,
                     i + 1,
-                    "goals",
+                    directive,
                 )
 
-                lesson.children.append(
-                    Goals(items=[item.lstrip("- ").strip() for item in block])
+                self._append(
+                    document,
+                    Goals(
+                        items=[
+                            item.lstrip("- ").strip()
+                            for item in block
+                        ]
+                    ),
                 )
 
                 continue
@@ -181,29 +201,18 @@ class Parser:
             # Generic content blocks
             #
 
-            block_nodes = {
-                "note": Note,
-                "tip": Tip,
-                "warning": Warning,
-                "danger": Danger,
-                "info": Info,
-                "pitfall": Pitfall,
-                "bestpractice": BestPractice,
-                "interview": Interview,
-                "math": Math,
-                "equation": Equation,
-                "summary": Summary,
-            }
-
-            if token.value in block_nodes:
+            if directive in BLOCK_NODES:
                 block, i = self._collect_block(
                     tokens,
                     i + 1,
-                    token.value,
+                    directive,
                 )
 
-                lesson.children.append(
-                    block_nodes[token.value](content="\n".join(block))
+                self._append(
+                    document,
+                    BLOCK_NODES[directive](
+                        content="\n".join(block),
+                    ),
                 )
 
                 continue
@@ -212,15 +221,7 @@ class Parser:
             # Titled blocks
             #
 
-            titled_nodes = {
-                "section": Section,
-                "definition": Definition,
-                "term": Term,
-                "concept": Concept,
-                "theorem": Theorem,
-            }
-
-            if token.value in titled_nodes:
+            if directive in TITLED_NODES:
                 title = self._text_after(
                     tokens,
                     i,
@@ -229,23 +230,24 @@ class Parser:
                 block, i = self._collect_block(
                     tokens,
                     i + 2,
-                    token.value,
+                    directive,
                 )
 
-                lesson.children.append(
-                    titled_nodes[token.value](
+                self._append(
+                    document,
+                    TITLED_NODES[directive](
                         title=title,
                         content="\n".join(block),
-                    )
+                    ),
                 )
 
                 continue
 
             #
-            # Path
+            # Collection
             #
 
-            if token.value == "path":
+            if directive == "collection":
                 title = self._text_after(
                     tokens,
                     i,
@@ -254,14 +256,15 @@ class Parser:
                 block, i = self._collect_block(
                     tokens,
                     i + 2,
-                    "path",
+                    directive,
                 )
 
-                lesson.children.append(
-                    Path(
+                self._append(
+                    document,
+                    Collection(
                         title=title,
-                        lessons=block,
-                    )
+                        documents=block,
+                    ),
                 )
 
                 continue
@@ -270,17 +273,15 @@ class Parser:
             # Version
             #
 
-            if token.value == "version":
-                version = self._text_after(
-                    tokens,
-                    i,
-                )
-
-                lesson.children.append(
+            if directive == "version":
+                self._append(
+                    document,
                     Version(
-                        version=version,
-                        children=[],
-                    )
+                        version=self._text_after(
+                            tokens,
+                            i,
+                        ),
+                    ),
                 )
 
                 i += 2
@@ -290,7 +291,7 @@ class Parser:
             # Code
             #
 
-            if token.value == "code":
+            if directive == "code":
                 language = self._text_after(
                     tokens,
                     i,
@@ -299,14 +300,15 @@ class Parser:
                 block, i = self._collect_block(
                     tokens,
                     i + 2,
-                    "code",
+                    directive,
                 )
 
-                lesson.children.append(
+                self._append(
+                    document,
                     Code(
                         language=language,
                         content="\n".join(block),
-                    )
+                    ),
                 )
 
                 continue
@@ -315,7 +317,7 @@ class Parser:
             # Diagram
             #
 
-            if token.value == "diagram":
+            if directive == "diagram":
                 diagram_type = self._text_after(
                     tokens,
                     i,
@@ -324,14 +326,15 @@ class Parser:
                 block, i = self._collect_block(
                     tokens,
                     i + 2,
-                    "diagram",
+                    directive,
                 )
 
-                lesson.children.append(
+                self._append(
+                    document,
                     Diagram(
                         diagram_type=diagram_type,
                         content="\n".join(block),
-                    )
+                    ),
                 )
 
                 continue
@@ -340,14 +343,15 @@ class Parser:
             # Image
             #
 
-            if token.value == "image":
-                lesson.children.append(
+            if directive == "image":
+                self._append(
+                    document,
                     Image(
                         path=self._text_after(
                             tokens,
                             i,
-                        )
-                    )
+                        ),
+                    ),
                 )
 
                 i += 2
@@ -357,7 +361,7 @@ class Parser:
             # Figure
             #
 
-            if token.value == "figure":
+            if directive == "figure":
                 path = self._text_after(
                     tokens,
                     i,
@@ -366,14 +370,15 @@ class Parser:
                 block, i = self._collect_block(
                     tokens,
                     i + 2,
-                    "figure",
+                    directive,
                 )
 
-                lesson.children.append(
+                self._append(
+                    document,
                     Figure(
                         path=path,
                         caption="\n".join(block),
-                    )
+                    ),
                 )
 
                 continue
@@ -382,17 +387,18 @@ class Parser:
             # Gallery
             #
 
-            if token.value == "gallery":
+            if directive == "gallery":
                 block, i = self._collect_block(
                     tokens,
                     i + 1,
-                    "gallery",
+                    directive,
                 )
 
-                lesson.children.append(
+                self._append(
+                    document,
                     Gallery(
                         images=block,
-                    )
+                    ),
                 )
 
                 continue
@@ -401,17 +407,18 @@ class Parser:
             # References
             #
 
-            if token.value == "references":
+            if directive == "references":
                 block, i = self._collect_block(
                     tokens,
                     i + 1,
-                    "references",
+                    directive,
                 )
 
-                lesson.children.append(
+                self._append(
+                    document,
                     References(
                         items=block,
-                    )
+                    ),
                 )
 
                 continue
@@ -420,17 +427,18 @@ class Parser:
             # Reading
             #
 
-            if token.value == "reading":
+            if directive == "reading":
                 block, i = self._collect_block(
                     tokens,
                     i + 1,
-                    "reading",
+                    directive,
                 )
 
-                lesson.children.append(
+                self._append(
+                    document,
                     Reading(
                         items=block,
-                    )
+                    ),
                 )
 
                 continue
@@ -439,17 +447,18 @@ class Parser:
             # Related
             #
 
-            if token.value == "related":
+            if directive == "related":
                 block, i = self._collect_block(
                     tokens,
                     i + 1,
-                    "related",
+                    directive,
                 )
 
-                lesson.children.append(
+                self._append(
+                    document,
                     Related(
-                        lessons=block,
-                    )
+                        documents=block,
+                    ),
                 )
 
                 continue
@@ -458,17 +467,18 @@ class Parser:
             # Concepts
             #
 
-            if token.value == "concepts":
+            if directive == "concepts":
                 block, i = self._collect_block(
                     tokens,
                     i + 1,
-                    "concepts",
+                    directive,
                 )
 
-                lesson.children.append(
+                self._append(
+                    document,
                     Concepts(
                         items=block,
-                    )
+                    ),
                 )
 
                 continue
@@ -477,14 +487,15 @@ class Parser:
             # Include
             #
 
-            if token.value == "include":
-                lesson.children.append(
+            if directive == "include":
+                self._append(
+                    document,
                     Include(
                         path=self._text_after(
                             tokens,
                             i,
-                        )
-                    )
+                        ),
+                    ),
                 )
 
                 i += 2
@@ -494,7 +505,7 @@ class Parser:
             # Snippet
             #
 
-            if token.value == "snippet":
+            if directive == "snippet":
                 name = self._text_after(
                     tokens,
                     i,
@@ -503,14 +514,15 @@ class Parser:
                 block, i = self._collect_block(
                     tokens,
                     i + 2,
-                    "snippet",
+                    directive,
                 )
 
-                lesson.children.append(
+                self._append(
+                    document,
                     Snippet(
                         name=name,
                         content="\n".join(block),
-                    )
+                    ),
                 )
 
                 continue
@@ -519,14 +531,15 @@ class Parser:
             # Use
             #
 
-            if token.value == "use":
-                lesson.children.append(
+            if directive == "use":
+                self._append(
+                    document,
                     Use(
                         name=self._text_after(
                             tokens,
                             i,
-                        )
-                    )
+                        ),
+                    ),
                 )
 
                 i += 2
@@ -536,27 +549,29 @@ class Parser:
             # Navigation
             #
 
-            if token.value == "next":
-                lesson.children.append(
+            if directive == "next":
+                self._append(
+                    document,
                     Next(
-                        lesson=self._text_after(
+                        document=self._text_after(
                             tokens,
                             i,
-                        )
-                    )
+                        ),
+                    ),
                 )
 
                 i += 2
                 continue
 
-            if token.value == "previous":
-                lesson.children.append(
+            if directive == "previous":
+                self._append(
+                    document,
                     Previous(
-                        lesson=self._text_after(
+                        document=self._text_after(
                             tokens,
                             i,
-                        )
-                    )
+                        ),
+                    ),
                 )
 
                 i += 2
@@ -566,14 +581,15 @@ class Parser:
             # Component
             #
 
-            if token.value == "component":
-                lesson.children.append(
+            if directive == "component":
+                self._append(
+                    document,
                     Component(
                         name=self._text_after(
                             tokens,
                             i,
-                        )
-                    )
+                        ),
+                    ),
                 )
 
                 i += 2
@@ -581,16 +597,33 @@ class Parser:
 
             i += 1
 
-        if lesson is None:
-            raise ValueError("No lesson found.")
+        if document is None:
+            raise ValueError(
+                "No document found."
+            )
 
-        return lesson
+        return document
+
+    def _append(
+        self,
+        document: Document,
+        node,
+    ) -> None:
+        """
+        Append a node to a document.
+        """
+
+        document.children.append(node)
 
     def _text_after(
         self,
         tokens: list[Token],
         index: int,
     ) -> str:
+        """
+        Return the text token immediately
+        following a directive.
+        """
 
         if (
             index + 1 < len(tokens)
@@ -606,15 +639,21 @@ class Parser:
         start: int,
         directive: str,
     ) -> tuple[list[str], int]:
+        """
+        Collect block content until @end.
+        """
 
-        lines = []
+        lines: list[str] = []
 
         i = start
 
         while i < len(tokens):
             token = tokens[i]
 
-            if token.type == TokenType.DIRECTIVE and token.value == "end":
+            if (
+                token.type == TokenType.DIRECTIVE
+                and token.value == "end"
+            ):
                 return (
                     lines,
                     i + 1,
@@ -625,4 +664,7 @@ class Parser:
 
             i += 1
 
-        raise MissingEndDirectiveError(directive)
+        raise MissingEndDirectiveError(
+            directive,
+        )
+        

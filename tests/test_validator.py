@@ -5,13 +5,13 @@ tests.test_validator
 Validator tests for Point.
 
 Verifies that AST validation catches
-invalid educational content.
+invalid document content.
 """
 
 from point.ast.nodes import (
     Code,
+    Document,
     Goals,
-    Lesson,
     References,
     Snippet,
 )
@@ -20,30 +20,34 @@ from point.validators.validator import (
 )
 
 
-def test_valid_lesson():
+def test_valid_document():
     """
-    Valid lesson should pass.
+    Valid document should pass.
     """
 
-    lesson = Lesson(
+    document = Document(
         title="Dependency Injection",
     )
 
-    errors = Validator().validate(lesson)
+    errors = Validator().validate(
+        document,
+    )
 
     assert errors == []
 
 
 def test_missing_title():
     """
-    Lesson title is required.
+    Document title is required.
     """
 
-    lesson = Lesson(
+    document = Document(
         title="",
     )
 
-    errors = Validator().validate(lesson)
+    errors = Validator().validate(
+        document,
+    )
 
     assert len(errors) > 0
 
@@ -53,12 +57,18 @@ def test_empty_goals():
     Goals cannot be empty.
     """
 
-    lesson = Lesson(
+    document = Document(
         title="Intro",
-        children=[Goals(items=[])],
+        children=[
+            Goals(
+                items=[],
+            )
+        ],
     )
 
-    errors = Validator().validate(lesson)
+    errors = Validator().validate(
+        document,
+    )
 
     assert len(errors) > 0
 
@@ -68,12 +78,20 @@ def test_valid_goals():
     Goals should validate.
     """
 
-    lesson = Lesson(
+    document = Document(
         title="Intro",
-        children=[Goals(items=["Learn DI"])],
+        children=[
+            Goals(
+                items=[
+                    "Learn DI",
+                ],
+            )
+        ],
     )
 
-    errors = Validator().validate(lesson)
+    errors = Validator().validate(
+        document,
+    )
 
     assert errors == []
 
@@ -83,7 +101,7 @@ def test_empty_code_language():
     Code language required.
     """
 
-    lesson = Lesson(
+    document = Document(
         title="Intro",
         children=[
             Code(
@@ -93,7 +111,9 @@ def test_empty_code_language():
         ],
     )
 
-    errors = Validator().validate(lesson)
+    errors = Validator().validate(
+        document,
+    )
 
     assert len(errors) > 0
 
@@ -103,7 +123,7 @@ def test_empty_code_content():
     Code content required.
     """
 
-    lesson = Lesson(
+    document = Document(
         title="Intro",
         children=[
             Code(
@@ -113,7 +133,9 @@ def test_empty_code_content():
         ],
     )
 
-    errors = Validator().validate(lesson)
+    errors = Validator().validate(
+        document,
+    )
 
     assert len(errors) > 0
 
@@ -123,7 +145,7 @@ def test_empty_snippet_name():
     Snippet name required.
     """
 
-    lesson = Lesson(
+    document = Document(
         title="Intro",
         children=[
             Snippet(
@@ -133,7 +155,9 @@ def test_empty_snippet_name():
         ],
     )
 
-    errors = Validator().validate(lesson)
+    errors = Validator().validate(
+        document,
+    )
 
     assert len(errors) > 0
 
@@ -143,7 +167,7 @@ def test_empty_snippet_content():
     Snippet content required.
     """
 
-    lesson = Lesson(
+    document = Document(
         title="Intro",
         children=[
             Snippet(
@@ -153,7 +177,9 @@ def test_empty_snippet_content():
         ],
     )
 
-    errors = Validator().validate(lesson)
+    errors = Validator().validate(
+        document,
+    )
 
     assert len(errors) > 0
 
@@ -163,12 +189,18 @@ def test_empty_references():
     References cannot be empty.
     """
 
-    lesson = Lesson(
+    document = Document(
         title="Intro",
-        children=[References(items=[])],
+        children=[
+            References(
+                items=[],
+            )
+        ],
     )
 
-    errors = Validator().validate(lesson)
+    errors = Validator().validate(
+        document,
+    )
 
     assert len(errors) > 0
 
@@ -178,11 +210,19 @@ def test_valid_references():
     References should validate.
     """
 
-    lesson = Lesson(
+    document = Document(
         title="Intro",
-        children=[References(items=["Clean Architecture"])],
+        children=[
+            References(
+                items=[
+                    "Clean Architecture",
+                ],
+            )
+        ],
     )
 
-    errors = Validator().validate(lesson)
+    errors = Validator().validate(
+        document,
+    )
 
     assert errors == []

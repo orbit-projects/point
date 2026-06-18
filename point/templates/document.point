@@ -1,4 +1,4 @@
-@lesson Welcome
+@document Welcome
 
 @meta
 difficulty: beginner
@@ -23,7 +23,7 @@ It transforms structured educational content into a modern documentation website
 
 @end
 
-@term Lesson
+@term Document
 
 A single unit of learning content in Point.
 
@@ -43,19 +43,19 @@ A graph representation of concepts and their relationships.
 
 @note
 
-Point encourages small, focused lessons.
+Point encourages small, focused documents.
 
 @end
 
 @tip
 
-Keep each lesson centered around one core concept.
+Keep each document centered around one core concept.
 
 @end
 
 @warning
 
-Avoid creating lessons that cover too many unrelated topics.
+Avoid creating documents that cover too many unrelated topics.
 
 @end
 
@@ -67,19 +67,7 @@ Use terms, concepts, and definitions consistently throughout a course.
 
 @section How Point Works
 
-A Point lesson goes through several stages before becoming a webpage.
-
-@end
-
-@diagram mermaid
-
-graph TD
-Source[.point File] --> Tokenizer
-Tokenizer --> Parser
-Parser --> AST
-AST --> Compiler
-Compiler --> Markdown
-Markdown --> Website
+A Point document goes through several stages before becoming a webpage.
 
 @end
 

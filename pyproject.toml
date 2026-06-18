@@ -9,7 +9,7 @@ build-backend = "setuptools.build_meta"
 name = "point"
 version = "1.0.0"
 
-description = "Educational authoring language and static course generation toolkit"
+description = "Build structured educational content, documentation, and learning resources from Point source files."
 
 readme = "README.md"
 
@@ -18,7 +18,7 @@ requires-python = ">=3.11"
 license = { text = "MIT" }
 
 authors = [
-{ name = "Undreamt" }
+{ name = "Pranav Manglik" }
 ]
 
 keywords = [

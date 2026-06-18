@@ -9,14 +9,6 @@ Responsibilities
 
 Verify configuration discovery and
 loading behavior.
-
-Coverage
---------
-
-- config discovery
-- config loading
-- default values
-- custom values
 """
 
 from pathlib import Path
@@ -110,8 +102,8 @@ def test_load_config_defaults(
 
     assert config.title == "Point Project"
 
-    assert config.lessons_dir == "lessons"
-
+    assert config.documents_dir == "documents"
+    
     assert config.docs_dir == "docs"
 
     assert config.theme.accent_color == "#646cff"
@@ -132,7 +124,7 @@ def test_load_config_custom_values(
 title = "My Course"
 author = "Pranav"
 
-lessons_dir = "content"
+documents_dir = "content"
 docs_dir = "site"
 
 [theme]
@@ -152,7 +144,7 @@ glossary = false
 
     assert config.author == "Pranav"
 
-    assert config.lessons_dir == "content"
+    assert config.documents_dir == "content"
 
     assert config.docs_dir == "site"
 

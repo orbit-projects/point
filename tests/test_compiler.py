@@ -11,7 +11,7 @@ compiled into markdown output.
 from point.ast.nodes import (
     Code,
     Definition,
-    Lesson,
+    Document,
     Note,
     Reading,
     References,
@@ -22,26 +22,35 @@ from point.compiler.compiler import (
 )
 
 
-def compile_lesson(
-    lesson: Lesson,
+def compile_document(
+    document: Document,
 ) -> str:
     """
     Compile helper.
     """
 
-    return MarkdownCompiler().compile(lesson)
+    return MarkdownCompiler().compile(
+        document,
+    )
 
 
-def test_lesson_title():
+def test_document_title():
     """
-    Verify lesson title rendering.
+    Verify document title rendering.
     """
 
-    lesson = Lesson(title="Dependency Injection")
+    document = Document(
+        title="Dependency Injection",
+    )
 
-    output = compile_lesson(lesson)
+    output = compile_document(
+        document,
+    )
 
-    assert "# Dependency Injection" in output
+    assert (
+        "# Dependency Injection"
+        in output
+    )
 
 
 def test_warning_block():
@@ -49,16 +58,28 @@ def test_warning_block():
     Verify warning rendering.
     """
 
-    lesson = Lesson(
+    document = Document(
         title="Intro",
-        children=[Warning(content="Danger")],
+        children=[
+            Warning(
+                content="Danger",
+            )
+        ],
     )
 
-    output = compile_lesson(lesson)
+    output = compile_document(
+        document,
+    )
 
-    assert "::: warning" in output
+    assert (
+        "::: warning"
+        in output
+    )
 
-    assert "Danger" in output
+    assert (
+        "Danger"
+        in output
+    )
 
 
 def test_note_block():
@@ -66,14 +87,28 @@ def test_note_block():
     Verify note rendering.
     """
 
-    lesson = Lesson(
+    document = Document(
         title="Intro",
-        children=[Note(content="Remember this.")],
+        children=[
+            Note(
+                content="Remember this.",
+            )
+        ],
     )
 
-    output = compile_lesson(lesson)
+    output = compile_document(
+        document,
+    )
 
-    assert "::: info" in output
+    assert (
+        "::: info"
+        in output
+    )
+
+    assert (
+        "Remember this."
+        in output
+    )
 
 
 def test_definition():
@@ -81,7 +116,7 @@ def test_definition():
     Verify definition rendering.
     """
 
-    lesson = Lesson(
+    document = Document(
         title="Intro",
         children=[
             Definition(
@@ -91,11 +126,16 @@ def test_definition():
         ],
     )
 
-    output = compile_lesson(lesson)
+    output = compile_document(
+        document,
+    )
 
     assert "DI" in output
 
-    assert "Dependency Injection" in output
+    assert (
+        "Dependency Injection"
+        in output
+    )
 
 
 def test_code_block():
@@ -103,7 +143,7 @@ def test_code_block():
     Verify code rendering.
     """
 
-    lesson = Lesson(
+    document = Document(
         title="Intro",
         children=[
             Code(
@@ -113,11 +153,19 @@ def test_code_block():
         ],
     )
 
-    output = compile_lesson(lesson)
+    output = compile_document(
+        document,
+    )
 
-    assert "```python" in output
+    assert (
+        "```python"
+        in output
+    )
 
-    assert 'print("hello")' in output
+    assert (
+        'print("hello")'
+        in output
+    )
 
 
 def test_references():
@@ -125,23 +173,31 @@ def test_references():
     Verify references section.
     """
 
-    lesson = Lesson(
+    document = Document(
         title="Intro",
         children=[
             References(
                 items=[
                     "Clean Architecture",
                     "Design Patterns",
-                ]
+                ],
             )
         ],
     )
 
-    output = compile_lesson(lesson)
+    output = compile_document(
+        document,
+    )
 
-    assert "## References" in output
+    assert (
+        "## References"
+        in output
+    )
 
-    assert "Clean Architecture" in output
+    assert (
+        "Clean Architecture"
+        in output
+    )
 
 
 def test_reading():
@@ -149,16 +205,30 @@ def test_reading():
     Verify reading section.
     """
 
-    lesson = Lesson(
+    document = Document(
         title="Intro",
-        children=[Reading(items=["Martin Fowler"])],
+        children=[
+            Reading(
+                items=[
+                    "Martin Fowler",
+                ],
+            )
+        ],
     )
 
-    output = compile_lesson(lesson)
+    output = compile_document(
+        document,
+    )
 
-    assert "Further Reading" in output
+    assert (
+        "Further Reading"
+        in output
+    )
 
-    assert "Martin Fowler" in output
+    assert (
+        "Martin Fowler"
+        in output
+    )
 
 
 def test_multiple_nodes():
@@ -166,11 +236,15 @@ def test_multiple_nodes():
     Verify multiple nodes compile.
     """
 
-    lesson = Lesson(
+    document = Document(
         title="Intro",
         children=[
-            Note(content="Note"),
-            Warning(content="Warning"),
+            Note(
+                content="Note",
+            ),
+            Warning(
+                content="Warning",
+            ),
             Code(
                 language="python",
                 content="print()",
@@ -178,7 +252,9 @@ def test_multiple_nodes():
         ],
     )
 
-    output = compile_lesson(lesson)
+    output = compile_document(
+        document,
+    )
 
     assert "Note" in output
 

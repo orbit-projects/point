@@ -10,10 +10,10 @@ converted into AST structures.
 
 from point.ast.nodes import (
     Code,
+    Collection,
     Definition,
+    Document,
     Goals,
-    Lesson,
-    Path,
     Snippet,
     Use,
     Warning,
@@ -33,28 +33,67 @@ def parse(
     Helper parser.
     """
 
-    tokens = Tokenizer().tokenize(source)
+    tokens = Tokenizer().tokenize(
+        source,
+    )
 
-    return Parser().parse(tokens)
+    return Parser().parse(
+        tokens,
+    )
 
 
-def test_lesson():
+def test_document():
     """
-    Verify lesson parsing.
+    Verify document parsing.
     """
 
-    lesson = parse(
+    document = parse(
         """
-@lesson Dependency Injection
+@document Dependency Injection
 """
     )
 
     assert isinstance(
-        lesson,
-        Lesson,
+        document,
+        Document,
     )
 
-    assert lesson.title == "Dependency Injection"
+    assert (
+        document.title
+        == "Dependency Injection"
+    )
+
+    assert (
+        document.kind
+        == "document"
+    )
+
+
+def test_document_kind():
+    """
+    Verify document kind parsing.
+    """
+
+    document = parse(
+        """
+@guide Dependency Injection Guide
+"""
+    )
+
+    assert isinstance(
+        document,
+        Document,
+    )
+
+    assert (
+        document.kind
+        == "guide"
+    )
+
+    assert (
+        document.title
+        == "Dependency Injection Guide"
+    )
 
 
 def test_goals():
@@ -62,9 +101,9 @@ def test_goals():
     Verify goals parsing.
     """
 
-    lesson = parse(
+    document = parse(
         """
-@lesson Intro
+@document Intro
 
 @goals
 
@@ -75,14 +114,16 @@ def test_goals():
 """
     )
 
-    goals = lesson.children[0]
+    goals = document.children[0]
 
     assert isinstance(
         goals,
         Goals,
     )
 
-    assert len(goals.items) == 2
+    assert len(
+        goals.items
+    ) == 2
 
 
 def test_warning():
@@ -90,9 +131,9 @@ def test_warning():
     Verify warning parsing.
     """
 
-    lesson = parse(
+    document = parse(
         """
-@lesson Intro
+@document Intro
 
 @warning
 
@@ -102,14 +143,17 @@ Danger.
 """
     )
 
-    node = lesson.children[0]
+    node = document.children[0]
 
     assert isinstance(
         node,
         Warning,
     )
 
-    assert node.content == "Danger."
+    assert (
+        node.content
+        == "Danger."
+    )
 
 
 def test_definition():
@@ -117,9 +161,9 @@ def test_definition():
     Verify definition parsing.
     """
 
-    lesson = parse(
+    document = parse(
         """
-@lesson Intro
+@document Intro
 
 @definition Dependency Injection
 
@@ -129,14 +173,17 @@ Dependencies are supplied externally.
 """
     )
 
-    node = lesson.children[0]
+    node = document.children[0]
 
     assert isinstance(
         node,
         Definition,
     )
 
-    assert node.title == "Dependency Injection"
+    assert (
+        node.title
+        == "Dependency Injection"
+    )
 
 
 def test_code():
@@ -144,9 +191,9 @@ def test_code():
     Verify code block parsing.
     """
 
-    lesson = parse(
+    document = parse(
         """
-@lesson Intro
+@document Intro
 
 @code python
 
@@ -156,16 +203,22 @@ print("hello")
 """
     )
 
-    node = lesson.children[0]
+    node = document.children[0]
 
     assert isinstance(
         node,
         Code,
     )
 
-    assert node.language == "python"
+    assert (
+        node.language
+        == "python"
+    )
 
-    assert "print" in node.content
+    assert (
+        "print"
+        in node.content
+    )
 
 
 def test_snippet():
@@ -173,9 +226,9 @@ def test_snippet():
     Verify snippet parsing.
     """
 
-    lesson = parse(
+    document = parse(
         """
-@lesson Intro
+@document Intro
 
 @snippet greeting
 
@@ -185,16 +238,22 @@ Hello World
 """
     )
 
-    node = lesson.children[0]
+    node = document.children[0]
 
     assert isinstance(
         node,
         Snippet,
     )
 
-    assert node.name == "greeting"
+    assert (
+        node.name
+        == "greeting"
+    )
 
-    assert node.content == "Hello World"
+    assert (
+        node.content
+        == "Hello World"
+    )
 
 
 def test_use():
@@ -202,34 +261,37 @@ def test_use():
     Verify snippet usage parsing.
     """
 
-    lesson = parse(
+    document = parse(
         """
-@lesson Intro
+@document Intro
 
 @use greeting
 """
     )
 
-    node = lesson.children[0]
+    node = document.children[0]
 
     assert isinstance(
         node,
         Use,
     )
 
-    assert node.name == "greeting"
+    assert (
+        node.name
+        == "greeting"
+    )
 
 
-def test_path():
+def test_collection():
     """
-    Verify learning path parsing.
+    Verify collection parsing.
     """
 
-    lesson = parse(
+    document = parse(
         """
-@lesson Intro
+@document Intro
 
-@path Backend
+@collection Backend
 
 HTTP
 REST
@@ -239,21 +301,26 @@ Auth
 """
     )
 
-    node = lesson.children[0]
+    node = document.children[0]
 
     assert isinstance(
         node,
-        Path,
+        Collection,
     )
 
-    assert node.title == "Backend"
+    assert (
+        node.title
+        == "Backend"
+    )
 
-    assert len(node.lessons) == 3
+    assert len(
+        node.documents
+    ) == 3
 
 
-def test_missing_lesson():
+def test_missing_document():
     """
-    Lesson must exist.
+    Root document must exist.
     """
 
     tokens = Tokenizer().tokenize(
@@ -267,7 +334,9 @@ Danger
     )
 
     try:
-        Parser().parse(tokens)
+        Parser().parse(
+            tokens,
+        )
 
         assert False
 

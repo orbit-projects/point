@@ -7,8 +7,8 @@ Knowledge graph generation system.
 Responsibilities
 ----------------
 
-Generate educational knowledge graphs
-from Point lessons.
+Generate knowledge graphs from
+Point documents.
 
 Features
 --------
@@ -16,21 +16,22 @@ Features
 - node extraction
 - edge extraction
 - graph json generation
+- document relationship mapping
 
 Pipeline
 --------
 
-Lessons
-    ↓
+Documents
+     ↓
 
 Parser
-    ↓
+     ↓
 
 AST
-    ↓
+     ↓
 
 GraphBuilder
-    ↓
+     ↓
 
 graph.json
 
@@ -41,9 +42,10 @@ The knowledge graph provides the foundation for:
 
 - concept exploration
 - glossary linking
-- lesson recommendations
-- learning paths
+- document recommendations
+- collections
 - prerequisite analysis
+- knowledge discovery
 
 Graph generation is intentionally independent
 from visualization systems.
@@ -67,7 +69,7 @@ from pathlib import (
 from point.ast.nodes import (
     Concept,
     Definition,
-    Lesson,
+    Document,
     Related,
     Term,
     Theorem,
@@ -78,18 +80,6 @@ from point.ast.nodes import (
 class GraphNode:
     """
     Knowledge graph node.
-
-    Attributes
-    ----------
-
-    id:
-        Unique identifier.
-
-    label:
-        Human-readable name.
-
-    type:
-        Node category.
     """
 
     id: str
@@ -105,18 +95,6 @@ class GraphNode:
 class GraphEdge:
     """
     Knowledge graph edge.
-
-    Attributes
-    ----------
-
-    source:
-        Source node id.
-
-    target:
-        Target node id.
-
-    relation:
-        Relationship type.
     """
 
     source: str
@@ -128,37 +106,37 @@ class GraphEdge:
 
 class GraphBuilder:
     """
-    Build educational knowledge graphs.
+    Build knowledge graphs from
+    Point documents.
     """
 
     def build(
         self,
-        lessons: list[Lesson],
+        documents: list[Document],
         output_dir: Path,
     ) -> None:
         """
         Build graph resources.
-
-        Parameters
-        ----------
-
-        lessons:
-            Parsed lesson ASTs.
-
-        output_dir:
-            Graph output directory.
         """
 
-        nodes = self.extract_nodes(lessons)
+        nodes = self.extract_nodes(
+            documents,
+        )
 
-        edges = self.extract_edges(lessons)
+        edges = self.extract_edges(
+            documents,
+        )
 
-        valid_nodes = {node.id for node in nodes}
+        valid_nodes = {
+            node.id
+            for node in nodes
+        }
 
         edges = [
             edge
             for edge in edges
-            if edge.source in valid_nodes and edge.target in valid_nodes
+            if edge.source in valid_nodes
+            and edge.target in valid_nodes
         ]
 
         output_dir.mkdir(
@@ -180,32 +158,33 @@ class GraphBuilder:
 
     def extract_nodes(
         self,
-        lessons: list[Lesson],
+        documents: list[Document],
     ) -> list[GraphNode]:
         """
-        Extract graph nodes from lessons.
+        Extract graph nodes from documents.
         """
 
         nodes: list[GraphNode] = []
 
         seen: set[str] = set()
 
-        for lesson in lessons:
-            lesson_id = self.slugify(lesson.title)
+        for document in documents:
+            document_id = self.slugify(
+                document.title,
+            )
 
-            if lesson_id not in seen:
-                seen.add(lesson_id)
+            if document_id not in seen:
+                seen.add(document_id)
 
                 nodes.append(
                     GraphNode(
-                        id=lesson_id,
-                        label=lesson.title,
-                        type="lesson",
-                        content="",
+                        id=document_id,
+                        label=document.title,
+                        type=document.kind,
                     )
                 )
 
-            for node in lesson.children:
+            for node in document.children:
                 if isinstance(
                     node,
                     Term,
@@ -225,6 +204,7 @@ class GraphBuilder:
                         id=self.slugify(node.title),
                         label=node.title,
                         type="definition",
+                        content=node.content,
                     )
 
                 elif isinstance(
@@ -235,6 +215,7 @@ class GraphBuilder:
                         id=self.slugify(node.title),
                         label=node.title,
                         type="concept",
+                        content=node.content,
                     )
 
                 elif isinstance(
@@ -245,6 +226,7 @@ class GraphBuilder:
                         id=self.slugify(node.title),
                         label=node.title,
                         type="theorem",
+                        content=node.content,
                     )
 
                 else:
@@ -253,28 +235,34 @@ class GraphBuilder:
                 if graph_node.id in seen:
                     continue
 
-                seen.add(graph_node.id)
+                seen.add(
+                    graph_node.id,
+                )
 
-                nodes.append(graph_node)
+                nodes.append(
+                    graph_node,
+                )
 
         return nodes
 
     def extract_edges(
         self,
-        lessons: list[Lesson],
+        documents: list[Document],
     ) -> list[GraphEdge]:
         """
-        Extract graph edges.
+        Extract graph relationships.
         """
 
         edges: list[GraphEdge] = []
 
-        for lesson in lessons:
-            lesson_id = self.slugify(lesson.title)
+        for document in documents:
+            document_id = self.slugify(
+                document.title,
+            )
 
-            for node in lesson.children:
+            for node in document.children:
                 #
-                # Lesson contains concept
+                # Document contains concept
                 #
 
                 if isinstance(
@@ -288,14 +276,16 @@ class GraphBuilder:
                 ):
                     edges.append(
                         GraphEdge(
-                            source=lesson_id,
-                            target=self.slugify(node.title),
+                            source=document_id,
+                            target=self.slugify(
+                                node.title,
+                            ),
                             relation="contains",
                         )
                     )
 
                 #
-                # Explicit related links
+                # Related documents
                 #
 
                 if not isinstance(
@@ -304,10 +294,10 @@ class GraphBuilder:
                 ):
                     continue
 
-                for item in node.lessons:
+                for item in node.documents:
                     edges.append(
                         GraphEdge(
-                            source=lesson_id,
+                            source=document_id,
                             target=self.slugify(item),
                             relation="related",
                         )
@@ -326,8 +316,14 @@ class GraphBuilder:
         """
 
         data = {
-            "nodes": [asdict(node) for node in nodes],
-            "edges": [asdict(edge) for edge in edges],
+            "nodes": [
+                asdict(node)
+                for node in nodes
+            ],
+            "edges": [
+                asdict(edge)
+                for edge in edges
+            ],
         }
 
         output_file.write_text(
@@ -344,6 +340,10 @@ class GraphBuilder:
         edges: list[GraphEdge],
         output_file: Path,
     ) -> None:
+        """
+        Write graph page.
+        """
+
         output_file.write_text(
             "\n".join(
                 [
@@ -364,4 +364,8 @@ class GraphBuilder:
         Convert text into a graph id.
         """
 
-        return value.strip().lower().replace(" ", "-")
+        return (
+            value.strip()
+            .lower()
+            .replace(" ", "-")
+        )

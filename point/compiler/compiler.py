@@ -5,7 +5,10 @@ point.compiler.compiler
 Markdown compiler for Point.
 
 The compiler transforms Point AST nodes into
-VitePress-compatible markdown.
+markdown output suitable for documentation
+systems such as VitePress.
+
+The compiler is intentionally stateless.
 
 Pipeline
 --------
@@ -21,26 +24,20 @@ AST
 Compiler
       ↓
 Markdown
-
-The compiler is intentionally stateless.
-
-Future compiler outputs may include:
-
-- glossary.json
-- graph.json
-- paths.json
-- component metadata
 """
 
 from point.ast.nodes import (
     BestPractice,
     Code,
+    CodeGroup,
+    Collection,
     Component,
     Concept,
     Concepts,
     Danger,
     Definition,
     Diagram,
+    Document,
     Equation,
     Figure,
     Gallery,
@@ -49,12 +46,12 @@ from point.ast.nodes import (
     Include,
     Info,
     Interview,
-    Lesson,
     Math,
     Meta,
+    Next,
     Note,
-    Path,
     Pitfall,
+    Previous,
     Reading,
     References,
     Related,
@@ -72,91 +69,104 @@ from point.ast.nodes import (
 
 class MarkdownCompiler:
     """
-    Compile Point AST into markdown.
+    Compile Point AST documents into markdown.
     """
 
     def __init__(
         self,
         snippets: dict[str, str] | None = None,
-    ):
+    ) -> None:
         self.snippets = snippets or {}
 
     def compile(
         self,
-        lesson: Lesson,
+        document: Document,
     ) -> str:
+        """
+        Compile a Point document.
+        """
 
         output: list[str] = []
 
-        #
-        # Frontmatter
-        #
-
-        meta = self._find_meta(lesson)
+        meta = self._find_meta(document)
 
         if meta:
             output.extend(
                 self._compile_frontmatter(
-                    lesson,
+                    document,
                     meta,
                 )
             )
-
         else:
             output.extend(
                 [
                     "---",
-                    f'title: "{lesson.title}"',
+                    f'title: "{document.title}"',
+                    f'kind: "{document.kind}"',
                     "---",
+                    "",
                 ]
             )
 
-        output.append(f"# {lesson.title}")
+        output.extend(
+            [
+                f"# {document.title}",
+                "",
+            ]
+        )
 
-        #
-        # Body
-        #
-
-        for node in lesson.children:
-            if isinstance(
-                node,
-                Meta,
-            ):
+        for node in document.children:
+            if isinstance(node, Meta):
                 continue
 
-            output.extend(self._compile_node(node))
+            output.extend(
+                self._compile_node(node)
+            )
 
-        return "\n".join(output)
+            output.append("")
+
+        return "\n".join(output).rstrip() + "\n"
 
     def _find_meta(
         self,
-        lesson: Lesson,
-    ):
+        document: Document,
+    ) -> Meta | None:
+        """
+        Locate the document metadata node.
+        """
 
-        for node in lesson.children:
-            if isinstance(
-                node,
-                Meta,
-            ):
+        for node in document.children:
+            if isinstance(node, Meta):
                 return node
 
         return None
 
     def _compile_frontmatter(
         self,
-        lesson: Lesson,
+        document: Document,
         meta: Meta,
     ) -> list[str]:
+        """
+        Compile YAML frontmatter.
+        """
 
         lines = [
             "---",
-            f'title: "{lesson.title}"',
+            f'title: "{document.title}"',
+            f'kind: "{document.kind}"',
         ]
 
         for key, value in meta.values.items():
-            lines.append(f"{key}: {value}")
+            lines.append(
+                f"{key}: {value}"
+            )
 
-        lines.append("---")
+        lines.extend(
+            [
+                "---",
+                "",
+            ]
+        )
 
         return lines
 
@@ -164,131 +174,92 @@ class MarkdownCompiler:
         self,
         node,
     ) -> list[str]:
+        """
+        Compile an individual AST node.
+        """
 
         #
-        # Goals
+        # Educational
         #
 
-        if isinstance(
-            node,
-            Goals,
-        ):
-            lines = ["## Goals"]
+        if isinstance(node, Goals):
+            return [
+                "## Goals",
+                "",
+                *[
+                    f"- {item}"
+                    for item in node.items
+                ],
+            ]
 
-            lines.extend(f"- {item}" for item in node.items)
-
-            return lines
-
-        #
-        # Summary
-        #
-
-        if isinstance(
-            node,
-            Summary,
-        ):
+        if isinstance(node, Summary):
             return [
                 "## Summary",
+                "",
                 node.content,
             ]
 
-        #
-        # Sections
-        #
-
-        if isinstance(
-            node,
-            Section,
-        ):
+        if isinstance(node, Section):
             return [
                 f"## {node.title}",
+                "",
+                node.content,
+            ]
+
+        if isinstance(node, Definition):
+            return [
+                f"## {node.title}",
+                "",
+                node.content,
+            ]
+
+        if isinstance(node, Term):
+            return [
+                f"## {node.title}",
+                "",
+                node.content,
+            ]
+
+        if isinstance(node, Concept):
+            return [
+                f"## {node.title}",
+                "",
+                node.content,
+            ]
+
+        if isinstance(node, Theorem):
+            return [
+                f"## {node.title}",
+                "",
                 node.content,
             ]
 
         #
-        # Educational Blocks
-        #
-
-        if isinstance(
-            node,
-            Definition,
-        ):
-            return [
-                f"## Definition: {node.title}",
-                node.content,
-            ]
-
-        if isinstance(
-            node,
-            Term,
-        ):
-            return [
-                f"## Term: {node.title}",
-                node.content,
-            ]
-
-        if isinstance(
-            node,
-            Concept,
-        ):
-            return [
-                f"## Concept: {node.title}",
-                node.content,
-            ]
-
-        #
-        # Content Blocks
+        # Admonitions
         #
 
         admonitions = {
             Note: "info",
+            Info: "info",
             Tip: "tip",
             Warning: "warning",
             Danger: "danger",
-            Info: "info",
+            Pitfall: "warning",
+            BestPractice: "tip",
         }
 
         for cls, kind in admonitions.items():
-            if isinstance(
-                node,
-                cls,
-            ):
+            if isinstance(node, cls):
                 return [
                     f"::: {kind}",
                     node.content,
                     ":::",
                 ]
 
-        #
-        # Practice Blocks
-        #
-
-        if isinstance(
-            node,
-            Pitfall,
-        ):
+        if isinstance(node, Interview):
             return [
-                "::: warning",
-                node.content,
-                ":::",
-            ]
-
-        if isinstance(
-            node,
-            BestPractice,
-        ):
-            return [
-                "::: tip",
-                node.content,
-                ":::",
-            ]
-
-        if isinstance(
-            node,
-            Interview,
-        ):
-            return [
-                "### Interview Question",
+                "## Interview Question",
+                "",
                 node.content,
             ]
 
@@ -296,79 +267,63 @@ class MarkdownCompiler:
         # Code
         #
 
-        if isinstance(
-            node,
-            Code,
-        ):
+        if isinstance(node, Code):
             return [
                 f"```{node.language}",
                 node.content,
                 "```",
             ]
 
-        #
-        # Diagram
-        #
+        if isinstance(node, CodeGroup):
+            lines: list[str] = []
 
-        if isinstance(
-            node,
-            Diagram,
-        ):
-            if isinstance(node, Diagram):
-                if node.diagram_type == "mermaid":
-                    content = (
-                        node.content
-                        .replace("\\", "\\\\")
-                        .replace('"', '\\"')
-                    )
-            
-                    return [
-                        f'<MermaidDiagram :chart="`{node.content}`" />',
+            for block in node.blocks:
+                lines.extend(
+                    [
+                        f"```{block.language}",
+                        block.content,
+                        "```",
                         "",
                     ]
-        
+                )
+
+            return lines
+
+        #
+        # Diagrams
+        #
+
+        if isinstance(node, Diagram):
             return [
                 f"```{node.diagram_type}",
                 node.content,
                 "```",
             ]
-            
-        #
-        # Image
-        #
-
-        if isinstance(
-            node,
-            Image,
-        ):
-            return [f"![{node.caption or ''}]({node.path})"]
 
         #
-        # Figure
+        # Images
         #
 
-        if isinstance(
-            node,
-            Figure,
-        ):
+        if isinstance(node, Image):
+            return [
+                f"![{node.caption}]({node.path})"
+            ]
+
+        if isinstance(node, Figure):
             return [
                 "<figure>",
                 f'<img src="{node.path}" />',
-                f"<figcaption>{node.caption or ''}</figcaption>",
+                f"<figcaption>{node.caption}</figcaption>",
                 "</figure>",
             ]
 
-        #
-        # Gallery
-        #
+        if isinstance(node, Gallery):
+            lines = ["## Gallery", ""]
 
-        if isinstance(
-            node,
-            Gallery,
-        ):
-            lines = ["## Gallery"]
-
-            lines.extend(f"![]({image})" for image in node.images)
+            lines.extend(
+                f"![]({image})"
+                for image in node.images
+            )
 
             return lines
 
@@ -376,149 +331,133 @@ class MarkdownCompiler:
         # Mathematics
         #
 
-        if isinstance(
-            node,
-            (
-                Math,
-                Equation,
-            ),
-        ):
+        if isinstance(node, (Math, Equation)):
             return [
                 "$$",
                 node.content,
                 "$$",
-            ]
-
-        if isinstance(
-            node,
-            Theorem,
-        ):
-            return [
-                f"## Theorem: {node.title}",
-                node.content,
             ]
 
         #
         # References
         #
 
-        if isinstance(
-            node,
-            References,
-        ):
-            lines = ["## References"]
+        if isinstance(node, References):
+            return [
+                "## References",
+                "",
+                *[
+                    f"- {item}"
+                    for item in node.items
+                ],
+            ]
 
-            lines.extend(f"- {item}" for item in node.items)
-
-            return lines
-
-        if isinstance(
-            node,
-            Reading,
-        ):
-            lines = ["## Further Reading"]
-
-            lines.extend(f"- {item}" for item in node.items)
-
-            return lines
-
-        #
-        # Related Topics
-        #
-
-        if isinstance(
-            node,
-            Related,
-        ):
-            lines = ["## Related Topics"]
-
-            lines.extend(f"- {item}" for item in node.lessons)
-
-            return lines
+        if isinstance(node, Reading):
+            return [
+                "## Further Reading",
+                "",
+                *[
+                    f"- {item}"
+                    for item in node.items
+                ],
+            ]
 
         #
-        # Concepts
+        # Navigation
         #
 
-        if isinstance(
-            node,
-            Concepts,
-        ):
-            lines = ["## Concepts"]
+        if isinstance(node, Next):
+            return [
+                "## Next",
+                "",
+                f"- {node.document}",
+            ]
 
-            lines.extend(f"- {item}" for item in node.items)
+        if isinstance(node, Previous):
+            return [
+                "## Previous",
+                "",
+                f"- {node.document}",
+            ]
 
-            return lines
+        if isinstance(node, Related):
+            return [
+                "## Related",
+                "",
+                *[
+                    f"- {item}"
+                    for item in node.documents
+                ],
+            ]
 
         #
-        # Include
+        # Collections
         #
 
-        if isinstance(
-            node,
-            Include,
-        ):
-            return [f"<!-- include:{node.path} -->"]
+        if isinstance(node, Collection):
+            return [
+                f"## {node.title}",
+                "",
+                *[
+                    f"{index}. {document}"
+                    for index, document in enumerate(
+                        node.documents,
+                        start=1,
+                    )
+                ],
+            ]
+
+        if isinstance(node, Concepts):
+            return [
+                "## Concepts",
+                "",
+                *[
+                    f"- {item}"
+                    for item in node.items
+                ],
+            ]
+
+        #
+        # Includes
+        #
+
+        if isinstance(node, Include):
+            return [
+                f"<!-- include:{node.path} -->"
+            ]
 
         #
         # Snippets
         #
 
-        if isinstance(
-            node,
-            Snippet,
-        ):
-            #
-            # Snippets are registry content.
-            #
-            # They should not render directly.
-            #
-
+        if isinstance(node, Snippet):
             return []
 
-        #
-        # Snippet Usage
-        #
-
-        if isinstance(
-            node,
-            Use,
-        ):
-            content = self.snippets.get(node.name)
+        if isinstance(node, Use):
+            content = self.snippets.get(
+                node.name
+            )
 
             if content is None:
-                return [f"<!-- missing snippet: {node.name} -->"]
+                return [
+                    f"<!-- missing snippet: {node.name} -->"
+                ]
 
             return [content]
 
         #
-        # Learning Paths
+        # Versioning
         #
 
-        if isinstance(
-            node,
-            Path,
-        ):
-            lines = [f"## Path: {node.title}"]
-
-            lines.extend(
-                f"{i + 1}. {item}" for i, item in enumerate(node.lessons)
-            )
-
-            return lines
-
-        #
-        # Version
-        #
-
-        if isinstance(
-            node,
-            Version,
-        ):
-            lines = [f"## Version {node.version}"]
+        if isinstance(node, Version):
+            lines = [
+                f"## Version {node.version}",
+            ]
 
             for child in node.children:
-                lines.extend(self._compile_node(child))
+                lines.extend(
+                    self._compile_node(child)
+                )
 
             return lines
 
@@ -526,10 +465,23 @@ class MarkdownCompiler:
         # Components
         #
 
-        if isinstance(
-            node,
-            Component,
-        ):
-            return [f"<{node.name} />"]
+        if isinstance(node, Component):
+            if not node.props:
+                return [
+                    f"<{node.name} />"
+                ]
+
+            props = " ".join(
+                f'{key}="{value}"'
+                for key, value in node.props.items()
+            )
+
+            return [
+                f"<{node.name} {props} />"
+            ]
+
+        #
+        # Unknown node
+        #
 
         return []

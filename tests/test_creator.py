@@ -8,14 +8,6 @@ Responsibilities
 ----------------
 
 Verify Point project scaffolding.
-
-Coverage
---------
-
-- project creation
-- lesson creation
-- template generation
-- configuration generation
 """
 
 from pathlib import Path
@@ -32,61 +24,91 @@ def test_create_project(
     Create Point project structure.
     """
 
-    project_dir = tmp_path / "demo"
+    project_dir = (
+        tmp_path / "demo"
+    )
 
-    create_project(project_dir)
+    create_project(
+        project_dir,
+    )
 
     #
     # Core
     #
 
-    assert (project_dir / "lessons").exists()
+    assert (
+        project_dir / "documents"
+    ).exists()
 
-    assert (project_dir / "docs").exists()
+    assert (
+        project_dir / "docs"
+    ).exists()
 
     #
     # Assets
     #
 
-    assert (project_dir / "assets").exists()
+    assert (
+        project_dir / "assets"
+    ).exists()
 
-    assert (project_dir / "components").exists()
+    assert (
+        project_dir / "components"
+    ).exists()
 
     #
     # Generated Content
     #
 
-    assert (project_dir / "glossary").exists()
+    assert (
+        project_dir / "glossary"
+    ).exists()
 
-    assert (project_dir / "graph").exists()
+    assert (
+        project_dir / "graph"
+    ).exists()
 
-    assert (project_dir / "paths").exists()
+    assert (
+        project_dir / "collections"
+    ).exists()
 
     #
     # Configuration
     #
 
-    assert (project_dir / "point.toml").exists()
+    assert (
+        project_dir / "point.toml"
+    ).exists()
 
-    assert (project_dir / "package.json").exists()
+    assert (
+        project_dir / "package.json"
+    ).exists()
 
 
-def test_create_project_generates_welcome_lesson(
+def test_create_project_generates_welcome_document(
     tmp_path: Path,
 ):
     """
-    Generate welcome lesson.
+    Generate welcome document.
     """
 
-    project_dir = tmp_path / "demo"
+    project_dir = (
+        tmp_path / "demo"
+    )
 
-    create_project(project_dir)
+    create_project(
+        project_dir,
+    )
 
-    lesson = project_dir / "lessons" / "welcome.point"
+    document = (
+        project_dir
+        / "documents"
+        / "welcome.point"
+    )
 
-    assert lesson.exists()
+    assert document.exists()
 
-    content = lesson.read_text(
+    content = document.read_text(
         encoding="utf-8",
     )
 
@@ -100,19 +122,31 @@ def test_create_project_generates_config(
     Generate point.toml.
     """
 
-    project_dir = tmp_path / "demo"
+    project_dir = (
+        tmp_path / "demo"
+    )
 
-    create_project(project_dir)
+    create_project(
+        project_dir,
+    )
 
-    config = project_dir / "point.toml"
+    config = (
+        project_dir / "point.toml"
+    )
 
     content = config.read_text(
         encoding="utf-8",
     )
 
-    assert 'title = "My Point Course"' in content
+    assert (
+        'title = "My Point Project"'
+        in content
+    )
 
-    assert 'version = "1.0.0"' in content
+    assert (
+        'version = "1.0.0"'
+        in content
+    )
 
 
 def test_create_project_generates_package_json(
@@ -122,10 +156,16 @@ def test_create_project_generates_package_json(
     Generate package.json.
     """
 
-    project_dir = tmp_path / "demo"
+    project_dir = (
+        tmp_path / "demo"
+    )
 
-    create_project(project_dir)
+    create_project(
+        project_dir,
+    )
 
-    package_file = project_dir / "package.json"
+    package_file = (
+        project_dir / "package.json"
+    )
 
     assert package_file.exists()

@@ -57,27 +57,41 @@ class ProjectManager:
         # Core
         #
 
-        self.lessons_dir = self.root / self.config.lessons_dir
+        self.documents_dir = (
+            self.root / self.config.documents_dir
+        )
 
-        self.docs_dir = self.root / self.config.docs_dir
+        self.docs_dir = (
+            self.root / self.config.docs_dir
+        )
 
         #
         # Assets
         #
 
-        self.assets_dir = self.root / self.config.assets_dir
+        self.assets_dir = (
+            self.root / self.config.assets_dir
+        )
 
-        self.components_dir = self.root / self.config.components_dir
+        self.components_dir = (
+            self.root / self.config.components_dir
+        )
 
         #
         # Generated Content
         #
 
-        self.glossary_dir = self.root / self.config.glossary_dir
+        self.glossary_dir = (
+            self.root / self.config.glossary_dir
+        )
 
-        self.graph_dir = self.root / self.config.graph_dir
+        self.graph_dir = (
+            self.root / self.config.graph_dir
+        )
 
-        self.paths_dir = self.root / self.config.paths_dir
+        self.collections_dir = (
+            self.root / self.config.collections_dir
+        )
 
         self.ensure_dirs()
 
@@ -89,13 +103,13 @@ class ProjectManager:
         """
 
         directories = [
-            self.lessons_dir,
+            self.documents_dir,
             self.docs_dir,
             self.assets_dir,
             self.components_dir,
             self.glossary_dir,
             self.graph_dir,
-            self.paths_dir,
+            self.collections_dir,
         ]
 
         for directory in directories:
@@ -117,55 +131,70 @@ class ProjectManager:
 
         project.resolve(
             "docs",
-            "intro.md",
+            "index.md",
         )
         """
 
         return self.root.joinpath(*paths)
 
-    def lesson_path(
+    def document_path(
         self,
         name: str,
     ) -> Path:
         """
-        Resolve lesson file.
+        Resolve Point document path.
         """
 
-        return self.lessons_dir / f"{name}.point"
+        return (
+            self.documents_dir
+            / f"{name}.point"
+        )
 
     def markdown_path(
         self,
         name: str,
     ) -> Path:
         """
-        Resolve generated markdown file.
+        Resolve generated markdown path.
         """
 
-        return self.docs_dir / f"{name}.md"
+        return (
+            self.docs_dir
+            / f"{name}.md"
+        )
 
     def glossary_path(
         self,
     ) -> Path:
         """
-        Glossary output file.
+        Glossary page path.
         """
 
-        return self.glossary_dir / "index.md"
+        return (
+            self.glossary_dir
+            / "index.md"
+        )
 
     def graph_path(
         self,
     ) -> Path:
         """
-        Knowledge graph output.
+        Knowledge graph path.
         """
 
-        return self.graph_dir / "graph.json"
+        return (
+            self.graph_dir
+            / "graph.json"
+        )
 
-    def paths_path(
+    def collections_path(
         self,
     ) -> Path:
         """
-        Learning path output.
+        Collections page path.
         """
 
-        return self.paths_dir / "index.md"
+        return (
+            self.collections_dir
+            / "index.md"
+        )

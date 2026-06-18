@@ -4,21 +4,23 @@ point.validators.validator
 
 Validation system for Point.
 
-The validator operates on the AST produced by the parser
-and ensures Point documents satisfy language rules before
-compilation.
+The validator operates on the AST produced by the
+parser and ensures Point documents satisfy language
+rules before compilation.
 
 Validation Categories
 ---------------------
 
 - document validation
 - metadata validation
-- educational content validation
+- educational validation
+- content validation
 - code validation
 - navigation validation
-- resource validation
+- collection validation
+- reusable content validation
 
-The validator should never modify the AST.
+The validator never modifies the AST.
 
 Its sole responsibility is reporting problems.
 """
@@ -26,14 +28,17 @@ Its sole responsibility is reporting problems.
 from dataclasses import dataclass
 
 from point.ast.nodes import (
+    DOCUMENT_KINDS,
     BestPractice,
     Code,
+    Collection,
     Component,
     Concept,
     Concepts,
     Danger,
     Definition,
     Diagram,
+    Document,
     Equation,
     Figure,
     Gallery,
@@ -42,12 +47,10 @@ from point.ast.nodes import (
     Include,
     Info,
     Interview,
-    Lesson,
     Math,
     Meta,
     Next,
     Note,
-    Path,
     Pitfall,
     Previous,
     Reading,
@@ -68,7 +71,7 @@ from point.ast.nodes import (
 @dataclass(slots=True)
 class ValidationError:
     """
-    Represents a validation issue.
+    Validation issue.
     """
 
     message: str
@@ -84,26 +87,37 @@ class Validator:
 
     def validate(
         self,
-        lesson: Lesson,
+        document: Document,
     ) -> list[ValidationError]:
         """
-        Validate a lesson AST.
+        Validate a Point document.
         """
 
         errors: list[ValidationError] = []
 
         #
-        # Lesson
+        # Document validation
         #
 
-        if not lesson.title.strip():
-            errors.append(ValidationError("Lesson title is required."))
+        if not document.title.strip():
+            errors.append(
+                ValidationError(
+                    "Document title is required."
+                )
+            )
+
+        if document.kind not in DOCUMENT_KINDS:
+            errors.append(
+                ValidationError(
+                    f"Invalid document kind: {document.kind}"
+                )
+            )
 
         #
-        # Children
+        # Child validation
         #
 
-        for node in lesson.children:
+        for node in document.children:
             self._validate_node(
                 node,
                 errors,
@@ -117,33 +131,35 @@ class Validator:
         errors: list[ValidationError],
     ) -> None:
         """
-        Validate a single node.
+        Validate a single AST node.
         """
 
         #
-        # Meta
+        # Metadata
         #
 
-        if isinstance(
-            node,
-            Meta,
-        ):
+        if isinstance(node, Meta):
             if not node.values:
-                errors.append(ValidationError("Meta block cannot be empty."))
+                errors.append(
+                    ValidationError(
+                        "Meta block cannot be empty."
+                    )
+                )
 
         #
         # Goals
         #
 
-        elif isinstance(
-            node,
-            Goals,
-        ):
+        elif isinstance(node, Goals):
             if not node.items:
-                errors.append(ValidationError("Goals cannot be empty."))
+                errors.append(
+                    ValidationError(
+                        "Goals cannot be empty."
+                    )
+                )
 
         #
-        # Generic Content Blocks
+        # Generic content blocks
         #
 
         elif isinstance(
@@ -170,7 +186,7 @@ class Validator:
                 )
 
         #
-        # Educational Blocks
+        # Educational blocks
         #
 
         elif isinstance(
@@ -197,46 +213,61 @@ class Validator:
                 )
 
         #
-        # Section
+        # Sections
         #
 
-        elif isinstance(
-            node,
-            Section,
-        ):
+        elif isinstance(node, Section):
             if not node.title.strip():
-                errors.append(ValidationError("Section title missing."))
+                errors.append(
+                    ValidationError(
+                        "Section title missing."
+                    )
+                )
 
             if not node.content.strip():
-                errors.append(ValidationError("Section content missing."))
+                errors.append(
+                    ValidationError(
+                        "Section content missing."
+                    )
+                )
 
         #
         # Code
         #
 
-        elif isinstance(
-            node,
-            Code,
-        ):
+        elif isinstance(node, Code):
             if not node.language.strip():
-                errors.append(ValidationError("Code language missing."))
+                errors.append(
+                    ValidationError(
+                        "Code language missing."
+                    )
+                )
 
             if not node.content.strip():
-                errors.append(ValidationError("Code block is empty."))
+                errors.append(
+                    ValidationError(
+                        "Code block is empty."
+                    )
+                )
 
         #
-        # Diagram
+        # Diagrams
         #
 
-        elif isinstance(
-            node,
-            Diagram,
-        ):
+        elif isinstance(node, Diagram):
             if not node.diagram_type.strip():
-                errors.append(ValidationError("Diagram type missing."))
+                errors.append(
+                    ValidationError(
+                        "Diagram type missing."
+                    )
+                )
 
             if not node.content.strip():
-                errors.append(ValidationError("Diagram content missing."))
+                errors.append(
+                    ValidationError(
+                        "Diagram content missing."
+                    )
+                )
 
         #
         # Images
@@ -251,21 +282,29 @@ class Validator:
         ):
             if not node.path.strip():
                 errors.append(
-                    ValidationError(f"{node.__class__.__name__} path missing.")
+                    ValidationError(
+                        f"{node.__class__.__name__} path missing."
+                    )
                 )
 
         #
         # Gallery
         #
 
-        elif isinstance(
-            node,
-            Gallery,
-        ):
+        elif isinstance(node, Gallery):
+            if not node.images:
+                errors.append(
+                    ValidationError(
+                        "Gallery cannot be empty."
+                    )
+                )
+
             for image in node.images:
                 if not image.strip():
                     errors.append(
-                        ValidationError("Gallery contains empty image path.")
+                        ValidationError(
+                            "Gallery contains empty image path."
+                        )
                     )
 
         #
@@ -279,20 +318,19 @@ class Validator:
                 Previous,
             ),
         ):
-            if not node.lesson.strip():
+            if not node.document.strip():
                 errors.append(
                     ValidationError(
-                        f"{node.__class__.__name__} lesson missing."
+                        f"{node.__class__.__name__} document missing."
                     )
                 )
 
-        elif isinstance(
-            node,
-            Related,
-        ):
-            if not node.lessons:
+        elif isinstance(node, Related):
+            if not node.documents:
                 errors.append(
-                    ValidationError("Related lessons cannot be empty.")
+                    ValidationError(
+                        "Related documents cannot be empty."
+                    )
                 )
 
         #
@@ -322,76 +360,109 @@ class Validator:
                     )
 
         #
-        # Learning Paths
+        # Collections
         #
 
-        elif isinstance(
-            node,
-            Path,
-        ):
+        elif isinstance(node, Collection):
             if not node.title.strip():
-                errors.append(ValidationError("Path title missing."))
+                errors.append(
+                    ValidationError(
+                        "Collection title missing."
+                    )
+                )
 
-            if not node.lessons:
-                errors.append(ValidationError("Path requires lessons."))
+            if not node.documents:
+                errors.append(
+                    ValidationError(
+                        "Collection requires documents."
+                    )
+                )
+
+            for document in node.documents:
+                if not document.strip():
+                    errors.append(
+                        ValidationError(
+                            "Collection contains empty document."
+                        )
+                    )
 
         #
-        # Knowledge Graph
+        # Knowledge graph
         #
 
-        elif isinstance(
-            node,
-            Concepts,
-        ):
+        elif isinstance(node, Concepts):
             if not node.items:
-                errors.append(ValidationError("Concept list cannot be empty."))
+                errors.append(
+                    ValidationError(
+                        "Concept list cannot be empty."
+                    )
+                )
 
         #
-        # Reusable Content
+        # Includes
         #
 
-        elif isinstance(
-            node,
-            Include,
-        ):
+        elif isinstance(node, Include):
             if not node.path.strip():
-                errors.append(ValidationError("Include path missing."))
+                errors.append(
+                    ValidationError(
+                        "Include path missing."
+                    )
+                )
 
-        elif isinstance(
-            node,
-            Snippet,
-        ):
+        #
+        # Snippets
+        #
+
+        elif isinstance(node, Snippet):
             if not node.name.strip():
-                errors.append(ValidationError("Snippet name missing."))
+                errors.append(
+                    ValidationError(
+                        "Snippet name missing."
+                    )
+                )
 
             if not node.content.strip():
-                errors.append(ValidationError("Snippet content missing."))
+                errors.append(
+                    ValidationError(
+                        "Snippet content missing."
+                    )
+                )
 
-        elif isinstance(
-            node,
-            Use,
-        ):
+        elif isinstance(node, Use):
             if not node.name.strip():
-                errors.append(ValidationError("Snippet name missing."))
+                errors.append(
+                    ValidationError(
+                        "Snippet name missing."
+                    )
+                )
 
         #
-        # Version
+        # Versioning
         #
 
-        elif isinstance(
-            node,
-            Version,
-        ):
+        elif isinstance(node, Version):
             if not node.version.strip():
-                errors.append(ValidationError("Version identifier missing."))
+                errors.append(
+                    ValidationError(
+                        "Version identifier missing."
+                    )
+                )
+
+            for child in node.children:
+                self._validate_node(
+                    child,
+                    errors,
+                )
 
         #
         # Components
         #
 
-        elif isinstance(
-            node,
-            Component,
-        ):
+        elif isinstance(node, Component):
             if not node.name.strip():
-                errors.append(ValidationError("Component name missing."))
+                errors.append(
+                    ValidationError(
+                        "Component name missing."
+                    )
+                )

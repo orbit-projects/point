@@ -9,20 +9,12 @@ Responsibilities
 
 Verify glossary extraction and
 resource generation.
-
-Coverage
---------
-
-- term extraction
-- alphabetical sorting
-- json generation
-- markdown generation
 """
 
 from pathlib import Path
 
 from point.ast.nodes import (
-    Lesson,
+    Document,
     Term,
 )
 from point.builders.glossary import (
@@ -32,21 +24,24 @@ from point.builders.glossary import (
 
 def test_extract_entries():
     """
-    Extract glossary entries from lessons.
+    Extract glossary entries from documents.
     """
 
-    lesson = Lesson(
+    document = Document(
         title="Dependency Injection",
+        kind="guide",
     )
 
-    lesson.children.append(
+    document.children.append(
         Term(
             title="Service Container",
             content="Stores services.",
         )
     )
 
-    entries = GlossaryBuilder().extract_entries([lesson])
+    entries = GlossaryBuilder().extract_entries(
+        [document],
+    )
 
     assert len(entries) == 1
 
@@ -56,7 +51,9 @@ def test_extract_entries():
 
     assert entry.definition == "Stores services."
 
-    assert entry.lesson == "Dependency Injection"
+    assert entry.document == "Dependency Injection"
+
+    assert entry.kind == "guide"
 
 
 def test_extract_entries_sorted():
@@ -65,11 +62,11 @@ def test_extract_entries_sorted():
     alphabetically.
     """
 
-    lesson = Lesson(
+    document = Document(
         title="Test",
     )
 
-    lesson.children.extend(
+    document.children.extend(
         [
             Term(
                 title="Zoo",
@@ -82,7 +79,9 @@ def test_extract_entries_sorted():
         ]
     )
 
-    entries = GlossaryBuilder().extract_entries([lesson])
+    entries = GlossaryBuilder().extract_entries(
+        [document],
+    )
 
     assert entries[0].term == "Alpha"
 
@@ -96,11 +95,11 @@ def test_write_json(
     Generate glossary JSON.
     """
 
-    lesson = Lesson(
+    document = Document(
         title="Test",
     )
 
-    lesson.children.append(
+    document.children.append(
         Term(
             title="Container",
             content="Example",
@@ -109,7 +108,9 @@ def test_write_json(
 
     builder = GlossaryBuilder()
 
-    entries = builder.extract_entries([lesson])
+    entries = builder.extract_entries(
+        [document],
+    )
 
     output_file = tmp_path / "glossary.json"
 
@@ -134,11 +135,11 @@ def test_write_markdown(
     Generate glossary markdown page.
     """
 
-    lesson = Lesson(
+    document = Document(
         title="Test",
     )
 
-    lesson.children.append(
+    document.children.append(
         Term(
             title="Container",
             content="Example",
@@ -147,7 +148,9 @@ def test_write_markdown(
 
     builder = GlossaryBuilder()
 
-    entries = builder.extract_entries([lesson])
+    entries = builder.extract_entries(
+        [document],
+    )
 
     output_file = tmp_path / "index.md"
 
@@ -174,11 +177,11 @@ def test_build(
     Build complete glossary resources.
     """
 
-    lesson = Lesson(
+    document = Document(
         title="Test",
     )
 
-    lesson.children.append(
+    document.children.append(
         Term(
             title="Container",
             content="Example",
@@ -186,10 +189,14 @@ def test_build(
     )
 
     GlossaryBuilder().build(
-        [lesson],
+        [document],
         tmp_path,
     )
 
-    assert (tmp_path / "glossary.json").exists()
+    assert (
+        tmp_path / "glossary.json"
+    ).exists()
 
-    assert (tmp_path / "index.md").exists()
+    assert (
+        tmp_path / "index.md"
+    ).exists()

@@ -58,11 +58,10 @@ def compile_file(
     output_path: Path,
 ) -> Path:
     """
-    Compile Point source file.
+    Compile a Point source file.
 
     Parameters
     ----------
-
     input_path:
         Source Point file.
 
@@ -71,42 +70,64 @@ def compile_file(
 
     Returns
     -------
-
     Path
-
         Generated markdown file.
-
-    Example
-    -------
-
-    compile_file(
-
-        Path(
-            "lessons/intro.point"
-        ),
-
-        Path(
-            "docs/intro.md"
-        )
-    )
     """
 
-    content = input_path.read_text(encoding="utf-8")
+    #
+    # Read source
+    #
 
-    tokens = Tokenizer().tokenize(content)
+    content = input_path.read_text(
+        encoding="utf-8",
+    )
 
-    lesson = Parser().parse(tokens)
+    #
+    # Tokenize
+    #
 
-    registry = SnippetBuilder().build_registry([lesson])
+    tokens = Tokenizer().tokenize(
+        content,
+    )
+
+    #
+    # Parse document
+    #
+
+    document = Parser().parse(
+        tokens,
+    )
+
+    #
+    # Build snippet registry
+    #
+
+    registry = SnippetBuilder().build_registry(
+        [document],
+    )
+
+    #
+    # Compile markdown
+    #
 
     markdown = MarkdownCompiler(
         snippets=registry,
-    ).compile(lesson)
+    ).compile(
+        document,
+    )
+
+    #
+    # Ensure output directory exists
+    #
 
     output_path.parent.mkdir(
         parents=True,
         exist_ok=True,
     )
+
+    #
+    # Write markdown
+    #
 
     output_path.write_text(
         markdown,

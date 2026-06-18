@@ -9,15 +9,6 @@ Responsibilities
 
 Verify snippet extraction and
 resource generation.
-
-Coverage
---------
-
-- snippet extraction
-- duplicate validation
-- registry generation
-- json generation
-- full build pipeline
 """
 
 from pathlib import Path
@@ -25,7 +16,7 @@ from pathlib import Path
 import pytest
 
 from point.ast.nodes import (
-    Lesson,
+    Document,
     Snippet,
 )
 from point.builders.snippets import (
@@ -35,21 +26,24 @@ from point.builders.snippets import (
 
 def test_extract_snippets():
     """
-    Extract snippets from lessons.
+    Extract snippets from documents.
     """
 
-    lesson = Lesson(
+    document = Document(
         title="Dependency Injection",
+        kind="guide",
     )
 
-    lesson.children.append(
+    document.children.append(
         Snippet(
             name="container",
             content="Container example.",
         )
     )
 
-    snippets = SnippetBuilder().extract_snippets([lesson])
+    snippets = SnippetBuilder().extract_snippets(
+        [document],
+    )
 
     assert len(snippets) == 1
 
@@ -59,7 +53,7 @@ def test_extract_snippets():
 
     assert snippet.content == "Container example."
 
-    assert snippet.lesson == "Dependency Injection"
+    assert snippet.document == "Dependency Injection"
 
 
 def test_extract_snippets_sorted():
@@ -68,11 +62,11 @@ def test_extract_snippets_sorted():
     alphabetically.
     """
 
-    lesson = Lesson(
+    document = Document(
         title="Test",
     )
 
-    lesson.children.extend(
+    document.children.extend(
         [
             Snippet(
                 name="zeta",
@@ -85,7 +79,9 @@ def test_extract_snippets_sorted():
         ]
     )
 
-    snippets = SnippetBuilder().extract_snippets([lesson])
+    snippets = SnippetBuilder().extract_snippets(
+        [document],
+    )
 
     assert snippets[0].name == "alpha"
 
@@ -98,11 +94,11 @@ def test_duplicate_snippets_raise():
     raise an error.
     """
 
-    lesson = Lesson(
+    document = Document(
         title="Test",
     )
 
-    lesson.children.extend(
+    document.children.extend(
         [
             Snippet(
                 name="container",
@@ -118,7 +114,9 @@ def test_duplicate_snippets_raise():
     with pytest.raises(
         ValueError,
     ):
-        (SnippetBuilder().extract_snippets([lesson]))
+        SnippetBuilder().extract_snippets(
+            [document],
+        )
 
 
 def test_build_registry():
@@ -126,18 +124,20 @@ def test_build_registry():
     Build snippet lookup registry.
     """
 
-    lesson = Lesson(
+    document = Document(
         title="Test",
     )
 
-    lesson.children.append(
+    document.children.append(
         Snippet(
             name="container",
             content="Example",
         )
     )
 
-    registry = SnippetBuilder().build_registry([lesson])
+    registry = SnippetBuilder().build_registry(
+        [document],
+    )
 
     assert registry["container"] == "Example"
 
@@ -149,11 +149,11 @@ def test_write_json(
     Generate snippets JSON.
     """
 
-    lesson = Lesson(
+    document = Document(
         title="Test",
     )
 
-    lesson.children.append(
+    document.children.append(
         Snippet(
             name="container",
             content="Example",
@@ -162,7 +162,9 @@ def test_write_json(
 
     builder = SnippetBuilder()
 
-    snippets = builder.extract_snippets([lesson])
+    snippets = builder.extract_snippets(
+        [document],
+    )
 
     output_file = tmp_path / "snippets.json"
 
@@ -187,11 +189,11 @@ def test_build(
     Build complete snippet resources.
     """
 
-    lesson = Lesson(
+    document = Document(
         title="Test",
     )
 
-    lesson.children.append(
+    document.children.append(
         Snippet(
             name="container",
             content="Example",
@@ -199,8 +201,10 @@ def test_build(
     )
 
     SnippetBuilder().build(
-        [lesson],
+        [document],
         tmp_path,
     )
 
-    assert (tmp_path / "snippets.json").exists()
+    assert (
+        tmp_path / "snippets.json"
+    ).exists()

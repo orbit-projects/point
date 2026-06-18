@@ -16,13 +16,13 @@ from point.tokenizer.tokenizer import (
 )
 
 
-def test_lesson_directive():
+def test_document_directive():
     """
-    Verify lesson directive parsing.
+    Verify document directive parsing.
     """
 
     source = """
-@lesson Dependency Injection
+@document Dependency Injection
 """
 
     tokens = Tokenizer().tokenize(source)
@@ -31,11 +31,46 @@ def test_lesson_directive():
 
     assert tokens[0].type == TokenType.DIRECTIVE
 
-    assert tokens[0].value == "lesson"
+    assert tokens[0].value == "document"
 
     assert tokens[1].type == TokenType.TEXT
 
     assert tokens[1].value == "Dependency Injection"
+
+
+def test_document_kinds():
+    """
+    Verify supported document kinds.
+    """
+
+    directives = [
+        "document",
+        "guide",
+        "reference",
+        "rfc",
+        "standard",
+        "roadmap",
+        "audit",
+        "blog",
+        "article",
+    ]
+
+    for directive in directives:
+        source = f"""
+@{directive} Example Title
+"""
+
+        tokens = Tokenizer().tokenize(source)
+
+        assert len(tokens) == 2
+
+        assert tokens[0].type == TokenType.DIRECTIVE
+
+        assert tokens[0].value == directive
+
+        assert tokens[1].type == TokenType.TEXT
+
+        assert tokens[1].value == "Example Title"
 
 
 def test_warning_block():
@@ -68,14 +103,14 @@ def test_comment_ignored():
     source = """
 # comment
 
-@lesson Intro
+@document Intro
 """
 
     tokens = Tokenizer().tokenize(source)
 
     assert len(tokens) == 2
 
-    assert tokens[0].value == "lesson"
+    assert tokens[0].value == "document"
 
     assert tokens[1].value == "Intro"
 
@@ -86,7 +121,7 @@ def test_multiple_directives():
     """
 
     source = """
-@lesson Intro
+@document Intro
 
 @note
 
@@ -104,11 +139,13 @@ Danger
     tokens = Tokenizer().tokenize(source)
 
     directives = [
-        token.value for token in tokens if token.type == TokenType.DIRECTIVE
+        token.value
+        for token in tokens
+        if token.type == TokenType.DIRECTIVE
     ]
 
     assert directives == [
-        "lesson",
+        "document",
         "note",
         "end",
         "warning",
